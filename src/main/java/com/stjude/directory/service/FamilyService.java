@@ -1,21 +1,25 @@
 package com.stjude.directory.service;
 
-import com.stjude.directory.dto.FamilyMemberRequestDTO;
+import com.stjude.directory.dto.CreateFamilyRequest;
+import com.stjude.directory.dto.CreateMemberRequest;
 import com.stjude.directory.dto.FamilyMemberResponseDTO;
-import com.stjude.directory.dto.FamilyRequestDTO;
 import com.stjude.directory.dto.FamilyResponseDTO;
 import com.stjude.directory.model.Family;
 import com.stjude.directory.model.FamilyMember;
 import com.stjude.directory.repository.FamilyRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.stjude.directory.repository.MemberRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -26,13 +30,18 @@ import java.util.stream.Collectors;
 @Service
 public class FamilyService {
 
-    @Autowired
-    private FamilyRepository familyRepository;
+    private final FamilyRepository familyRepository;
 
-    @Autowired
-    private S3Client s3Client;
+    private final MemberRepository memberRepository;
 
-    private final String bucketName = "stjude-family-members-photos"; // Replace with your actual bucket name
+    private final S3Service s3Service;
+
+
+    public FamilyService(FamilyRepository familyRepository, MemberRepository memberRepository, S3Service s3Service) {
+        this.familyRepository = familyRepository;
+        this.memberRepository = memberRepository;
+        this.s3Service = s3Service;
+    }
 
     /**
      * Creates a new family with the provided request data.
@@ -41,38 +50,48 @@ public class FamilyService {
      * @return the created FamilyResponseDTO containing the family details
      * @throws Exception if an error occurs during family creation
      */
-    public FamilyResponseDTO createFamily(FamilyRequestDTO familyRequest) throws Exception {
-        Family family = new Family();
-        family.setName(familyRequest.getName());
-        family.setAddress(familyRequest.getAddress());
-        family.setAnniversaryDate(familyRequest.getAnniversaryDate());
-
+    @Transactional
+    public FamilyResponseDTO createFamily(CreateFamilyRequest familyRequest) throws Exception {
+        Family family = new Family(familyRequest);
         // Handle photo upload
         if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
-            String photoUrl = uploadFileToS3(familyRequest.getPhoto());
+            String fileName = s3Service.uploadImage(familyRequest.getPhoto());
+            String photoUrl = s3Service.generatePresignedUrl(fileName);
             family.setPhotoUrl(photoUrl);
         }
-
-        // Convert FamilyMemberRequestDTO to FamilyMember
-        List<FamilyMember> members = new ArrayList<>();
-        if (familyRequest.getFamilyMembers() != null) {
-            members = familyRequest.getFamilyMembers().stream().map(dto -> {
-                FamilyMember member = new FamilyMember();
-                member.setId(UUID.randomUUID().toString());
-                member.setName(dto.getName());
-                member.setDob(dto.getDob());
-                member.setPhoneNumber(dto.getPhoneNumber());
-                member.setBloodGroup(dto.getBloodGroup());
-                return member;
-            }).toList();
-        }
-        family.setFamilyMembers(members);
-
-        // Save to MongoDB
+        family.setFamilyMembers(saveAndGetMembersFromFamily(familyRequest));
         Family savedFamily = familyRepository.save(family);
+        return new FamilyResponseDTO(savedFamily);
+    }
 
-        // Convert to FamilyResponseDTO
-        return convertToResponseDTO(savedFamily);
+    private List<FamilyMember> saveAndGetMembersFromFamily(CreateFamilyRequest familyRequest) {
+        if (familyRequest.getFamilyMembers() == null || familyRequest.getFamilyMembers().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<FamilyMember> members = familyRequest.getFamilyMembers()
+                .stream()
+                .map(dto -> new FamilyMember(dto, familyRequest.getAddress(), familyRequest.getUnit()))
+                .toList();
+        memberRepository.saveAll(members);
+        return members;
+    }
+
+    /**
+     * Adds a new family member to a specified family.
+     *
+     * @param familyId      the ID of the family to which the member will be added
+     * @param memberRequest the request data for the new family member
+     * @return the updated FamilyResponseDTO containing the family details
+     */
+    @Transactional
+    public FamilyResponseDTO addFamilyMember(String familyId, CreateMemberRequest memberRequest) {
+        Family family = familyRepository.findById(familyId)
+                .orElseThrow(() -> new RuntimeException("Family not found"));
+        FamilyMember newMember = new FamilyMember(memberRequest, family.getAddress(), family.getUnit());
+        memberRepository.save(newMember);
+        family.getFamilyMembers().add(newMember);
+        Family updatedFamily = familyRepository.save(family);
+        return new FamilyResponseDTO(updatedFamily);
     }
 
     /**
@@ -102,22 +121,23 @@ public class FamilyService {
     /**
      * Updates an existing family's information.
      *
-     * @param id the ID of the family to update
+     * @param id            the ID of the family to update
      * @param familyRequest the request data containing updated family details
      * @return the updated FamilyResponseDTO with the family's details
      * @throws Exception if an error occurs during the update process
      */
-    public FamilyResponseDTO updateFamily(String id, FamilyRequestDTO familyRequest) throws Exception {
+    public FamilyResponseDTO updateFamily(String id, CreateFamilyRequest familyRequest) throws Exception {
         Family existingFamily = familyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Family not found"));
 
-        existingFamily.setName(familyRequest.getName());
+        //existingFamily.setName(familyRequest.getName());
         existingFamily.setAddress(familyRequest.getAddress());
         existingFamily.setAnniversaryDate(familyRequest.getAnniversaryDate());
 
         // Handle photo upload
         if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
-            String photoUrl = uploadFileToS3(familyRequest.getPhoto());
+            String fileName = s3Service.uploadImage(familyRequest.getPhoto());
+            String photoUrl = s3Service.generatePresignedUrl(fileName);
             existingFamily.setPhotoUrl(photoUrl);
         }
 
@@ -155,46 +175,25 @@ public class FamilyService {
         // Optionally, delete the photo from S3
         if (family.getPhotoUrl() != null) {
             String key = extractS3KeyFromUrl(family.getPhotoUrl());
-            deleteFileFromS3(key);
+            s3Service.deleteFileFromS3(key);
         }
 
         // Delete the family from MongoDB
         familyRepository.deleteById(id);
     }
 
-    /**
-     * Adds a new family member to a specified family.
-     *
-     * @param familyId the ID of the family to which the member will be added
-     * @param memberRequest the request data for the new family member
-     * @return the updated FamilyResponseDTO containing the family details
-     */
-    public FamilyResponseDTO addFamilyMember(String familyId, FamilyMemberRequestDTO memberRequest) {
-        Family family = familyRepository.findById(familyId)
-                .orElseThrow(() -> new RuntimeException("Family not found"));
 
-        FamilyMember newMember = new FamilyMember();
-        newMember.setId(UUID.randomUUID().toString());
-        newMember.setName(memberRequest.getName());
-        newMember.setDob(memberRequest.getDob());
-        newMember.setPhoneNumber(memberRequest.getPhoneNumber());
-
-        family.getFamilyMembers().add(newMember);
-        Family updatedFamily = familyRepository.save(family);
-
-        return convertToResponseDTO(updatedFamily);
-    }
 
     /**
      * Updates an existing family member's information.
      *
-     * @param familyId the ID of the family to which the member belongs
-     * @param memberId the ID of the member to update
+     * @param familyId      the ID of the family to which the member belongs
+     * @param memberId      the ID of the member to update
      * @param memberRequest the request data for updating the family member
      * @return the updated FamilyResponseDTO containing the family's details
      * @throws RuntimeException if the family or member is not found
      */
-    public FamilyResponseDTO updateFamilyMember(String familyId, String memberId, FamilyMemberRequestDTO memberRequest) {
+    public FamilyResponseDTO updateFamilyMember(String familyId, String memberId, CreateMemberRequest memberRequest) {
         Family family = familyRepository.findById(familyId)
                 .orElseThrow(() -> new RuntimeException("Family not found"));
 
@@ -246,33 +245,33 @@ public class FamilyService {
      * @return the URL of the uploaded file
      * @throws Exception if an error occurs during the upload process
      */
-    private String uploadFileToS3(MultipartFile file) throws Exception {
-        String key = "family-photos/" + UUID.randomUUID();
-
-        s3Client.putObject(
-                PutObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(key)
-                        .build(),
-                RequestBody.fromBytes(file.getBytes())
-        );
-
-        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
-    }
+//    private String uploadFileToS3(MultipartFile file) throws Exception {
+//        String key = "family-photos/" + UUID.randomUUID();
+//
+//        s3Client.putObject(
+//                PutObjectRequest.builder()
+//                        .bucket(bucketName)
+//                        .key(key)
+//                        .build(),
+//                RequestBody.fromBytes(file.getBytes())
+//        );
+//
+//        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
+//    }
 
     /**
      * Deletes a specified file from S3.
      *
      * @param key the S3 key of the file to delete
      */
-    private void deleteFileFromS3(String key) {
-        s3Client.deleteObject(
-                DeleteObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(key)
-                        .build()
-        );
-    }
+//    private void deleteFileFromS3(String key) {
+//        s3Client.deleteObject(
+//                DeleteObjectRequest.builder()
+//                        .bucket(bucketName)
+//                        .key(key)
+//                        .build()
+//        );
+//    }
 
     /**
      * Extracts the S3 key from the provided S3 URL.
@@ -293,7 +292,7 @@ public class FamilyService {
     private FamilyResponseDTO convertToResponseDTO(Family family) {
         FamilyResponseDTO response = new FamilyResponseDTO();
         response.setId(family.getId());
-        response.setName(family.getName());
+       // response.setName(family.getName());
         response.setAddress(family.getAddress());
         response.setAnniversaryDate(family.getAnniversaryDate());
         response.setPhotoUrl(family.getPhotoUrl());

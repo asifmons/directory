@@ -2,13 +2,14 @@ package com.stjude.directory.dto;
 
 
 import com.stjude.directory.enums.BloodGroup;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class FamilyMemberRequestDTO {
+public class CreateMemberRequest {
 
     @NotBlank(message = "Member name is required")
     @Size(max = 100, message = "Member name must be less than 100 characters")
@@ -22,7 +23,10 @@ public class FamilyMemberRequestDTO {
     @Pattern(regexp = "^\\d{10,12}$", message = "Phone number must be between 10 and 12 digits")
     private String phoneNumber;
 
+    @Email
+    private String emailId;//todo add further validations
+
     private BloodGroup bloodGroup;
 
-
+    private Boolean isFamilyHead;
 }

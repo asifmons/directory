@@ -1,7 +1,7 @@
 package com.stjude.directory.controller;
 
-import com.stjude.directory.dto.FamilyMemberRequestDTO;
-import com.stjude.directory.dto.FamilyRequestDTO;
+import com.stjude.directory.dto.CreateMemberRequest;
+import com.stjude.directory.dto.CreateFamilyRequest;
 import com.stjude.directory.dto.FamilyResponseDTO;
 import com.stjude.directory.service.FamilyService;
 import jakarta.validation.Valid;
@@ -34,7 +34,7 @@ public class FamilyController {
      */
     @PostMapping
     public ResponseEntity<FamilyResponseDTO> createFamily(
-            @Valid FamilyRequestDTO familyRequest
+            @Valid CreateFamilyRequest familyRequest
     ) throws Exception {
         FamilyResponseDTO createdFamily = familyService.createFamily(familyRequest);
         return new ResponseEntity<>(createdFamily, HttpStatus.CREATED);
@@ -74,7 +74,7 @@ public class FamilyController {
     @PutMapping("/{id}")
     public ResponseEntity<FamilyResponseDTO> updateFamily(
             @PathVariable String id,
-            @Valid @ModelAttribute FamilyRequestDTO familyRequest
+            @Valid @ModelAttribute CreateFamilyRequest familyRequest
     ) throws Exception {
         FamilyResponseDTO updatedFamily = familyService.updateFamily(id, familyRequest);
         return ResponseEntity.ok(updatedFamily);
@@ -102,7 +102,7 @@ public class FamilyController {
     @PostMapping("/{familyId}/members")
     public ResponseEntity<FamilyResponseDTO> addFamilyMember(
             @PathVariable String familyId,
-            @Valid @RequestBody FamilyMemberRequestDTO memberRequest
+            @Valid @RequestBody CreateMemberRequest memberRequest
     ) {
         FamilyResponseDTO updatedFamily = familyService.addFamilyMember(familyId, memberRequest);
         return ResponseEntity.ok(updatedFamily);
@@ -120,7 +120,7 @@ public class FamilyController {
     public ResponseEntity<FamilyResponseDTO> updateFamilyMember(
             @PathVariable String familyId,
             @PathVariable String memberId,
-            @Valid @RequestBody FamilyMemberRequestDTO memberRequest
+            @Valid @RequestBody CreateMemberRequest memberRequest
     ) {
         FamilyResponseDTO updatedFamily = familyService.updateFamilyMember(familyId, memberId, memberRequest);
         return ResponseEntity.ok(updatedFamily);
