@@ -319,14 +319,23 @@ public class FamilyService {
     }
 
     public List<FamilyMemberResponseDTO> searchFamilies(SearchRequest searchRequest) {
-        Criteria searchCriteria = CriteriaHelper.createCriteria(searchRequest.getNode());
-        Query query = new Query();
-        query.addCriteria(searchCriteria);
-        query.limit(searchRequest.getPageSize());
-        query.skip((long) (searchRequest.getOffset() - 1) * searchRequest.getPageSize());
+        Query query = buildSearchQuery(searchRequest);
         List<FamilyMember> familyMembers = mongoTemplate.find(query, FamilyMember.class);
+        return mapToResponseDTOs(familyMembers);
+    }
+
+    private Query buildSearchQuery(SearchRequest searchRequest) {
+        Criteria searchCriteria = CriteriaHelper.createCriteria(searchRequest.getNode());
+        return new Query()
+                .addCriteria(searchCriteria)
+                .limit(searchRequest.getPageSize())
+                .skip((long) (searchRequest.getOffset() - 1) * searchRequest.getPageSize());
+    }
+
+    private List<FamilyMemberResponseDTO> mapToResponseDTOs(List<FamilyMember> familyMembers) {
         return familyMembers.stream()
                 .map(FamilyMemberResponseDTO::new)
                 .toList();
     }
+
 }
