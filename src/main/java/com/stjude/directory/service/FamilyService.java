@@ -1,20 +1,22 @@
 package com.stjude.directory.service;
 
+import com.stjude.directory.CriteriaHelper;
 import com.stjude.directory.dto.CreateFamilyRequest;
 import com.stjude.directory.dto.CreateMemberRequest;
 import com.stjude.directory.dto.FamilyMemberResponseDTO;
 import com.stjude.directory.dto.FamilyResponseDTO;
 import com.stjude.directory.model.Family;
 import com.stjude.directory.model.FamilyMember;
+import com.stjude.directory.model.SearchRequest;
 import com.stjude.directory.repository.FamilyRepository;
 import com.stjude.directory.repository.MemberRepository;
+
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+
 
 import java.util.Collections;
 import java.util.List;
@@ -35,12 +37,15 @@ public class FamilyService {
     private final MemberRepository memberRepository;
 
     private final S3Service s3Service;
+    private final MongoTemplate mongoTemplate;
 
 
-    public FamilyService(FamilyRepository familyRepository, MemberRepository memberRepository, S3Service s3Service) {
+    public FamilyService(FamilyRepository familyRepository, MemberRepository memberRepository,
+                         S3Service s3Service, MongoTemplate mongoTemplate) {
         this.familyRepository = familyRepository;
         this.memberRepository = memberRepository;
         this.s3Service = s3Service;
+        this.mongoTemplate = mongoTemplate;
     }
 
     /**
@@ -311,5 +316,17 @@ public class FamilyService {
 
         response.setFamilyMembers(memberResponses);
         return response;
+    }
+
+    public List<FamilyMemberResponseDTO> searchFamilies(SearchRequest searchRequest) {
+        Criteria searchCriteria = CriteriaHelper.createCriteria(searchRequest.getNode());
+        Query query = new Query();
+        query.addCriteria(searchCriteria);
+        query.limit(searchRequest.getPageSize());
+        query.skip((long) (searchRequest.getOffset() - 1) * searchRequest.getPageSize());
+        List<FamilyMember> familyMembers = mongoTemplate.find(query, FamilyMember.class);
+        return familyMembers.stream()
+                .map(FamilyMemberResponseDTO::new)
+                .toList();
     }
 }
