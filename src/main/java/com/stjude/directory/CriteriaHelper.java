@@ -9,42 +9,33 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import java.util.List;
 
 public class CriteriaHelper {
+
     public static Criteria createCriteria(Node node) {
-        Criteria criteria = new Criteria();
-        return createCriteria(node, criteria);
+        return node instanceof FilterCriteria ? buildCompositeCriteria((FilterCriteria) node) : buildFieldCriteria((FieldFilter) node);
     }
 
-    private static Criteria createCriteria(Node node, Criteria criteria) {
-        if (node instanceof FilterCriteria filterCriteria) {
-            List<Criteria> criteriaList = filterCriteria.getFilters().stream()
-                    .map(node1 -> createCriteria(node1, criteria)).toList();
-            if (filterCriteria.getEvaluationType().equals(EvaluationType.AND)) {
-                return criteria.andOperator(criteriaList);
-            } else {
-                return criteria.orOperator(criteriaList);
-            }
-        } else {
-            FieldFilter fieldFilter = (FieldFilter) node;
-            return getCriteriaBasedOnOperator(fieldFilter);
-        }
+    private static Criteria buildCompositeCriteria(FilterCriteria filterCriteria) {
+        List<Criteria> criteriaList = filterCriteria.getFilters().stream()
+                .map(CriteriaHelper::createCriteria)
+                .toList();
+
+        return filterCriteria.getEvaluationType() == EvaluationType.AND
+                ? new Criteria().andOperator(criteriaList)
+                : new Criteria().orOperator(criteriaList);
     }
 
-    private static Criteria getCriteriaBasedOnOperator(FieldFilter fieldFilter) {
+    private static Criteria buildFieldCriteria(FieldFilter fieldFilter) {
+        Criteria criteria = Criteria.where(fieldFilter.getFieldName());
+        Object value = fieldFilter.getValues().getFirst();
+
         return switch (fieldFilter.getOperation()) {
-            case STARTS_WITH -> Criteria.where(fieldFilter.getFieldName())
-                    .regex("^" + fieldFilter.getValues().getFirst(), "i");
-            case EQUALS -> Criteria.where(fieldFilter.getFieldName())
-                    .is(fieldFilter.getValues().getFirst());
-            case NOT_EQUALS -> Criteria.where(fieldFilter.getFieldName())
-                    .ne(fieldFilter.getValues().getFirst());
-            case GTE -> Criteria.where(fieldFilter.getFieldName())
-                    .gte(fieldFilter.getValues().getFirst());
-            case LTE -> Criteria.where(fieldFilter.getFieldName())
-                    .lte(fieldFilter.getValues().getFirst());
-            case LT -> Criteria.where(fieldFilter.getFieldName())
-                    .lt(fieldFilter.getValues().getFirst());
-            case GT -> Criteria.where(fieldFilter.getFieldName())
-                    .gt(fieldFilter.getValues().getFirst());
+            case STARTS_WITH -> criteria.regex("^" + value, "i");
+            case EQUALS -> criteria.is(value);
+            case NOT_EQUALS -> criteria.ne(value);
+            case GTE -> criteria.gte(value);
+            case LTE -> criteria.lte(value);
+            case LT -> criteria.lt(value);
+            case GT -> criteria.gt(value);
         };
     }
 }
