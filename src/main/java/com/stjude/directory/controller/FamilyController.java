@@ -1,8 +1,10 @@
 package com.stjude.directory.controller;
 
-import com.stjude.directory.dto.CreateMemberRequest;
 import com.stjude.directory.dto.CreateFamilyRequest;
+import com.stjude.directory.dto.CreateMemberRequest;
+import com.stjude.directory.dto.FamilyMemberResponseDTO;
 import com.stjude.directory.dto.FamilyResponseDTO;
+import com.stjude.directory.model.SearchRequest;
 import com.stjude.directory.service.FamilyService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -140,5 +142,11 @@ public class FamilyController {
     ) {
         FamilyResponseDTO updatedFamily = familyService.deleteFamilyMember(familyId, memberId);
         return ResponseEntity.ok(updatedFamily);
+    }
+
+    @PostMapping("searchFamilyMembers")
+    public ResponseEntity<List<FamilyMemberResponseDTO>> searchFamilyMembers(@RequestBody @Valid SearchRequest searchRequest) {
+        List<FamilyMemberResponseDTO> families = familyService.searchFamilies(searchRequest);
+        return ResponseEntity.ok(families);
     }
 }

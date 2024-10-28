@@ -1,6 +1,7 @@
 package com.stjude.directory.dto;
 
 
+import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.Couple;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -28,7 +29,7 @@ public class CreateFamilyRequest {
 
     private List<Couple> couples;
 
-    private String unit;
+    private Unit unit;
 
     private String houseName;
 
