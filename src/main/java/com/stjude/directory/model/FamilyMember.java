@@ -2,13 +2,16 @@ package com.stjude.directory.model;
 
 import com.stjude.directory.dto.CreateMemberRequest;
 import com.stjude.directory.enums.BloodGroup;
+import com.stjude.directory.enums.Unit;
 import com.stjude.directory.utils.StringOps;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.UUID;
 
 @Data
+@Document(collection = "family_members")
 @NoArgsConstructor
 public class FamilyMember {
     private String id;  // Unique ID for each family member
@@ -19,9 +22,9 @@ public class FamilyMember {
     private BloodGroup bloodGroup;
     private Boolean isFamilyHead;
     private String address;
-    private String unit;
+    private Unit unit;
 
-    public FamilyMember(CreateMemberRequest request, String address, String unit){
+    public FamilyMember(CreateMemberRequest request, String address, Unit unit){
         this.id = StringOps.generateUUID();
         this.name = request.getName();
         this.dob = request.getDob();

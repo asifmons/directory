@@ -1,6 +1,7 @@
 package com.stjude.directory.model;
 
 import com.stjude.directory.dto.CreateFamilyRequest;
+import com.stjude.directory.enums.Unit;
 import com.stjude.directory.utils.StringOps;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,7 +20,7 @@ public class Family {
     private String anniversaryDate; // Consider using LocalDate for date handling
     private List<FamilyMember> familyMembers;
     private String photoUrl;
-    private String unit;
+    private Unit unit;
     private List<Couple> couples;
     private String houseName;
 

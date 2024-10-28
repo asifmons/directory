@@ -14,6 +14,8 @@ public class FamilyMemberResponseDTO {
     private String dob;
     private String phoneNumber;
     private BloodGroup bloodGroup;
+    private Boolean isFamilyHead;
+    private String emailId;
 
     public FamilyMemberResponseDTO(FamilyMember member){
         this.setId(member.getId());
@@ -21,5 +23,7 @@ public class FamilyMemberResponseDTO {
         this.setDob(member.getDob());
         this.setPhoneNumber(member.getPhoneNumber());
         this.setBloodGroup(member.getBloodGroup());
+        this.setIsFamilyHead(member.getIsFamilyHead());
+        this.setEmailId(member.getEmailId());
     }
 }
