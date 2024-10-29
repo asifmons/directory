@@ -9,7 +9,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class CreateMemberRequest {
+public class UpdateMemberRequest {
+
+    @NotBlank(message = "Member Id is required")
+    private String id;
 
     @NotBlank(message = "Member name is required")
     @Size(max = 100, message = "Member name must be less than 100 characters")
@@ -32,4 +35,5 @@ public class CreateMemberRequest {
     private Boolean isFamilyHead;
 
     private Short coupleNo;
+
 }

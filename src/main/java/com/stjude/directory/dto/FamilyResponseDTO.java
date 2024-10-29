@@ -2,6 +2,7 @@ package com.stjude.directory.dto;
 
 import com.stjude.directory.model.Couple;
 import com.stjude.directory.model.Family;
+import com.stjude.directory.model.Member;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -12,20 +13,20 @@ import java.util.List;
 public class FamilyResponseDTO {
     private String id;
     private String address;
-    private String anniversaryDate;
     private String photoUrl; // URL of the family photo
-    private List<FamilyMemberResponseDTO> familyMembers;
+    private List<MemberResponseDTO> familyMembers;
     private List<Couple> couples;
+    private String houseName;
 
-    public FamilyResponseDTO(Family family) {
+    public FamilyResponseDTO(Family family, List<Member> members) {
         this.id = family.getId();
         this.address = family.getAddress();
-        this.anniversaryDate = family.getAnniversaryDate();
         this.photoUrl = family.getPhotoUrl();
-        this.familyMembers = family.getFamilyMembers()
+        this.houseName = family.getHouseName();
+        this.familyMembers = members
                 .stream()
-                .map(FamilyMemberResponseDTO::new)
+                .map(MemberResponseDTO::new)
                 .toList();
-        this.couples = family.getCouples();
+        //this.couples = family.getAnniversaryDates();//todo -populate couple- do as part of feature-3
     }
 }
