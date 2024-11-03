@@ -1,13 +1,9 @@
 package com.stjude.directory.controller;
 
-import com.stjude.directory.dto.CreateFamilyRequest;
-import com.stjude.directory.dto.CreateMemberRequest;
-import com.stjude.directory.dto.FamilyMemberResponseDTO;
-import com.stjude.directory.dto.FamilyResponseDTO;
+import com.stjude.directory.dto.*;
 import com.stjude.directory.model.SearchRequest;
 import com.stjude.directory.service.FamilyService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -24,8 +20,11 @@ import java.util.List;
 @Validated
 public class FamilyController {
 
-    @Autowired
-    private FamilyService familyService;
+    private final FamilyService familyService;
+
+    public FamilyController(FamilyService familyService) {
+        this.familyService = familyService;
+    }
 
     /**
      * Creates a new family with the provided details.
@@ -76,7 +75,7 @@ public class FamilyController {
     @PutMapping("/{id}")
     public ResponseEntity<FamilyResponseDTO> updateFamily(
             @PathVariable String id,
-            @Valid @ModelAttribute CreateFamilyRequest familyRequest
+            @Valid @ModelAttribute UpdateFamilyRequest familyRequest
     ) throws Exception {
         FamilyResponseDTO updatedFamily = familyService.updateFamily(id, familyRequest);
         return ResponseEntity.ok(updatedFamily);
@@ -97,35 +96,35 @@ public class FamilyController {
     /**
      * Adds a new family member to the specified family.
      *
-     * @param familyId     the ID of the family to which the member will be added
-     * @param memberRequest the details of the member to be added
+     * @param familyId      the ID of the family to which the member will be added
+     * @param memberRequests the details of the member to be added
      * @return a ResponseEntity containing the updated FamilyResponseDTO and an HTTP status of 200 (OK)
      */
     @PostMapping("/{familyId}/members")
-    public ResponseEntity<FamilyResponseDTO> addFamilyMember(
+    public ResponseEntity<String> addFamilyMember(
             @PathVariable String familyId,
-            @Valid @RequestBody CreateMemberRequest memberRequest
+            @RequestBody List<@Valid CreateMemberRequest> memberRequests
     ) {
-        FamilyResponseDTO updatedFamily = familyService.addFamilyMember(familyId, memberRequest);
-        return ResponseEntity.ok(updatedFamily);
+        familyService.addFamilyMember(familyId, memberRequests);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Member(s) successfully added.");
     }
 
     /**
      * Updates an existing family member's details.
      *
-     * @param familyId     the ID of the family containing the member
-     * @param memberId     the ID of the member to be updated
+     * @param familyId      the ID of the family containing the member
+     * @param memberId      the ID of the member to be updated
      * @param memberRequest the new details of the member
      * @return a ResponseEntity containing the updated FamilyResponseDTO and an HTTP status of 200 (OK)
      */
     @PutMapping("/{familyId}/members/{memberId}")
-    public ResponseEntity<FamilyResponseDTO> updateFamilyMember(
+    public ResponseEntity<String> updateFamilyMember(
             @PathVariable String familyId,
             @PathVariable String memberId,
             @Valid @RequestBody CreateMemberRequest memberRequest
     ) {
-        FamilyResponseDTO updatedFamily = familyService.updateFamilyMember(familyId, memberId, memberRequest);
-        return ResponseEntity.ok(updatedFamily);
+        familyService.updateFamilyMember(familyId, memberId, memberRequest);
+        return ResponseEntity.status(HttpStatus.OK).body("Member successfully updated");
     }
 
     /**
@@ -136,17 +135,17 @@ public class FamilyController {
      * @return a ResponseEntity containing the updated FamilyResponseDTO and an HTTP status of 200 (OK)
      */
     @DeleteMapping("/{familyId}/members/{memberId}")
-    public ResponseEntity<FamilyResponseDTO> deleteFamilyMember(
+    public ResponseEntity<String> deleteFamilyMember(
             @PathVariable String familyId,
             @PathVariable String memberId
     ) {
-        FamilyResponseDTO updatedFamily = familyService.deleteFamilyMember(familyId, memberId);
-        return ResponseEntity.ok(updatedFamily);
+        familyService.deleteFamilyMember(familyId, memberId);
+        return ResponseEntity.ok("Member successfully deleted");
     }
 
     @PostMapping("searchFamilyMembers")
-    public ResponseEntity<List<FamilyMemberResponseDTO>> searchFamilyMembers(@RequestBody @Valid SearchRequest searchRequest) {
-        List<FamilyMemberResponseDTO> families = familyService.searchFamilies(searchRequest);
+    public ResponseEntity<List<MemberResponseDTO>> searchFamilyMembers(@RequestBody @Valid SearchRequest searchRequest) {
+        List<MemberResponseDTO> families = familyService.searchFamilies(searchRequest);
         return ResponseEntity.ok(families);
     }
 }

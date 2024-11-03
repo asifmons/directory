@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @Data
-public class CreateFamilyRequest {
+public class UpdateFamilyRequest {
 
     @NotBlank(message = "Address is required")
     @Size(max = 200, message = "Address must be less than 200 characters")
@@ -20,13 +20,13 @@ public class CreateFamilyRequest {
 
     private MultipartFile photo; // For uploading family photo
 
-    private Unit unit;
-
-    private String houseName;
+    private List<UpdateMemberRequest> familyMembers;
 
     private Map<Short, Date> anniversaryDates;
 
-    private List<CreateMemberRequest> familyMembers;
+    private Unit unit;
+
+    private String houseName;
 
 }
 

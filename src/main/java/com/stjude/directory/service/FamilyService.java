@@ -1,28 +1,20 @@
 package com.stjude.directory.service;
 
 import com.stjude.directory.CriteriaHelper;
-import com.stjude.directory.dto.CreateFamilyRequest;
-import com.stjude.directory.dto.CreateMemberRequest;
-import com.stjude.directory.dto.FamilyMemberResponseDTO;
-import com.stjude.directory.dto.FamilyResponseDTO;
+import com.stjude.directory.dto.*;
 import com.stjude.directory.model.Family;
-import com.stjude.directory.model.FamilyMember;
+import com.stjude.directory.model.Member;
 import com.stjude.directory.model.SearchRequest;
 import com.stjude.directory.repository.FamilyRepository;
-import com.stjude.directory.repository.MemberRepository;
-
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * Service class for managing family entities and their members.
@@ -33,17 +25,14 @@ import java.util.stream.Collectors;
 public class FamilyService {
 
     private final FamilyRepository familyRepository;
-
-    private final MemberRepository memberRepository;
-
+    private final MemberService memberService;
     private final S3Service s3Service;
     private final MongoTemplate mongoTemplate;
 
-
-    public FamilyService(FamilyRepository familyRepository, MemberRepository memberRepository,
+    public FamilyService(FamilyRepository familyRepository, MemberService memberService,
                          S3Service s3Service, MongoTemplate mongoTemplate) {
         this.familyRepository = familyRepository;
-        this.memberRepository = memberRepository;
+        this.memberService = memberService;
         this.s3Service = s3Service;
         this.mongoTemplate = mongoTemplate;
     }
@@ -64,20 +53,21 @@ public class FamilyService {
             String photoUrl = s3Service.generatePresignedUrl(fileName);
             family.setPhotoUrl(photoUrl);
         }
-        family.setFamilyMembers(saveAndGetMembersFromFamily(familyRequest));
+
         Family savedFamily = familyRepository.save(family);
-        return new FamilyResponseDTO(savedFamily);
+        List<Member> members = saveMembersFromFamily(familyRequest, savedFamily.getId());
+        return new FamilyResponseDTO(savedFamily, members);
     }
 
-    private List<FamilyMember> saveAndGetMembersFromFamily(CreateFamilyRequest familyRequest) {
+    private List<Member> saveMembersFromFamily(CreateFamilyRequest familyRequest, String familyId) {
         if (familyRequest.getFamilyMembers() == null || familyRequest.getFamilyMembers().isEmpty()) {
             return Collections.emptyList();
         }
-        List<FamilyMember> members = familyRequest.getFamilyMembers()
+        List<Member> members = familyRequest.getFamilyMembers()
                 .stream()
-                .map(dto -> new FamilyMember(dto, familyRequest.getAddress(), familyRequest.getUnit()))
+                .map(dto -> new Member(dto, familyId, familyRequest.getAddress(), familyRequest.getUnit()))
                 .toList();
-        memberRepository.saveAll(members);
+        memberService.saveAllMembers(members);
         return members;
     }
 
@@ -85,18 +75,15 @@ public class FamilyService {
      * Adds a new family member to a specified family.
      *
      * @param familyId      the ID of the family to which the member will be added
-     * @param memberRequest the request data for the new family member
+     * @param memberRequests the request data for the new family member
      * @return the updated FamilyResponseDTO containing the family details
      */
-    @Transactional
-    public FamilyResponseDTO addFamilyMember(String familyId, CreateMemberRequest memberRequest) {
+    public void addFamilyMember(String familyId, List<CreateMemberRequest> memberRequests) {
         Family family = familyRepository.findById(familyId)
                 .orElseThrow(() -> new RuntimeException("Family not found"));
-        FamilyMember newMember = new FamilyMember(memberRequest, family.getAddress(), family.getUnit());
-        memberRepository.save(newMember);
-        family.getFamilyMembers().add(newMember);
-        Family updatedFamily = familyRepository.save(family);
-        return new FamilyResponseDTO(updatedFamily);
+       memberRequests.stream()
+               .map(memReq-> new Member(memReq, familyId, family.getAddress(), family.getUnit()))
+               .forEach(memberService::saveMember);
     }
 
     /**
@@ -110,7 +97,8 @@ public class FamilyService {
         Family family = familyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Family not found"));
 
-        return convertToResponseDTO(family);
+        List<Member> members = memberService.getMembersByFamilyId(id);
+        return new FamilyResponseDTO(family, members);
     }
 
     /**
@@ -120,7 +108,10 @@ public class FamilyService {
      */
     public List<FamilyResponseDTO> listAllFamilies() {
         List<Family> families = familyRepository.findAll();
-        return families.stream().map(this::convertToResponseDTO).collect(Collectors.toList());
+        return families.stream().map(f -> {
+            List<Member> members = memberService.getMembersByFamilyId(f.getId());
+            return new FamilyResponseDTO(f, members);
+        }).toList();
     }
 
     /**
@@ -131,40 +122,31 @@ public class FamilyService {
      * @return the updated FamilyResponseDTO with the family's details
      * @throws Exception if an error occurs during the update process
      */
-    public FamilyResponseDTO updateFamily(String id, CreateFamilyRequest familyRequest) throws Exception {
-        Family existingFamily = familyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Family not found"));
-
-        //existingFamily.setName(familyRequest.getName());
-        existingFamily.setAddress(familyRequest.getAddress());
-        existingFamily.setAnniversaryDate(familyRequest.getAnniversaryDate());
+    @Transactional
+    public FamilyResponseDTO updateFamily(String id, UpdateFamilyRequest familyRequest) throws Exception {
+        if (!familyRepository.existsById(id)) {
+            throw new RuntimeException("Family not found");
+        }
+        Family updatedFamily = new Family(id, familyRequest);
 
         // Handle photo upload
         if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
             String fileName = s3Service.uploadImage(familyRequest.getPhoto());
             String photoUrl = s3Service.generatePresignedUrl(fileName);
-            existingFamily.setPhotoUrl(photoUrl);
+            updatedFamily.setPhotoUrl(photoUrl);
         }
+        familyRepository.save(updatedFamily);
 
+        List<Member> members = new ArrayList<>();
         // Update family members if provided
-        if (familyRequest.getFamilyMembers() != null) {
-            existingFamily.getFamilyMembers().clear();
-            List<FamilyMember> updatedMembers = familyRequest.getFamilyMembers().stream().map(dto -> {
-                FamilyMember member = new FamilyMember();
-                member.setId(UUID.randomUUID().toString());
-                member.setName(dto.getName());
-                member.setDob(dto.getDob());
-                member.setPhoneNumber(dto.getPhoneNumber());
-                return member;
-            }).toList();
-            existingFamily.getFamilyMembers().addAll(updatedMembers);
+        if (familyRequest.getFamilyMembers() != null && !familyRequest.getFamilyMembers().isEmpty()) {
+            members = familyRequest.getFamilyMembers()
+                    .stream()
+                    .map(dto -> new Member(dto, id, familyRequest.getAddress(), familyRequest.getUnit())).toList();
+            memberService.saveAllMembers(members);
         }
 
-        // Save updated family
-        Family updatedFamily = familyRepository.save(existingFamily);
-
-        // Convert to FamilyResponseDTO
-        return convertToResponseDTO(updatedFamily);
+        return new FamilyResponseDTO(updatedFamily, members);
     }
 
     /**
@@ -188,7 +170,6 @@ public class FamilyService {
     }
 
 
-
     /**
      * Updates an existing family member's information.
      *
@@ -198,26 +179,17 @@ public class FamilyService {
      * @return the updated FamilyResponseDTO containing the family's details
      * @throws RuntimeException if the family or member is not found
      */
-    public FamilyResponseDTO updateFamilyMember(String familyId, String memberId, CreateMemberRequest memberRequest) {
-        Family family = familyRepository.findById(familyId)
-                .orElseThrow(() -> new RuntimeException("Family not found"));
+    public void updateFamilyMember(String familyId, String memberId, CreateMemberRequest memberRequest) {
 
-        Optional<FamilyMember> memberOpt = family.getFamilyMembers().stream()
-                .filter(member -> member.getId().equals(memberId))
-                .findFirst();
+        Family family = familyRepository.findById(familyId).orElseThrow(() -> new RuntimeException("Family not found"));
 
-        if (memberOpt.isEmpty()) {
-            throw new RuntimeException("Family member not found");
-        }
+        memberService.getMembersByFamilyId(familyId).stream()
+                .filter(mem -> mem.getId().equals(memberId))
+                .findFirst().orElseThrow(() -> new RuntimeException("Family member not found"));
 
-        FamilyMember member = memberOpt.get();
-        member.setName(memberRequest.getName());
-        member.setDob(memberRequest.getDob());
-        member.setPhoneNumber(memberRequest.getPhoneNumber());
+        Member updatedMember = new Member(memberId, memberRequest, familyId, family.getAddress(), family.getUnit());
 
-        Family updatedFamily = familyRepository.save(family);
-
-        return convertToResponseDTO(updatedFamily);
+        memberService.saveMember(updatedMember);
     }
 
     /**
@@ -228,19 +200,16 @@ public class FamilyService {
      * @return the updated FamilyResponseDTO containing the family's details
      * @throws RuntimeException if the family or member is not found
      */
-    public FamilyResponseDTO deleteFamilyMember(String familyId, String memberId) {
-        Family family = familyRepository.findById(familyId)
-                .orElseThrow(() -> new RuntimeException("Family not found"));
-
-        boolean removed = family.getFamilyMembers().removeIf(member -> member.getId().equals(memberId));
-
-        if (!removed) {
-            throw new RuntimeException("Family member not found");
+    public void deleteFamilyMember(String familyId, String memberId) {
+        if (!familyRepository.existsById(familyId)) {
+            throw new RuntimeException("Family not found");
         }
 
-        Family updatedFamily = familyRepository.save(family);
+        memberService.getMembersByFamilyId(familyId).stream()
+                .filter(member -> member.getId().equals(memberId))
+                .findFirst().orElseThrow(() -> new RuntimeException("Family member not found"));
 
-        return convertToResponseDTO(updatedFamily);
+        memberService.deleteMember(memberId);
     }
 
     /**
@@ -288,23 +257,23 @@ public class FamilyService {
         return url.substring(url.lastIndexOf("/") + 1);
     }
 
-    /**
-     * Converts a Family object to a FamilyResponseDTO.
-     *
-     * @param family the Family object to convert
-     * @return the converted FamilyResponseDTO
-     */
-    private FamilyResponseDTO convertToResponseDTO(Family family) {
+//    /**
+//     * Converts a Family object to a FamilyResponseDTO.
+//     *
+//     * @param family the Family object to convert
+//     * @return the converted FamilyResponseDTO
+//     */
+   /* private FamilyResponseDTO convertToResponseDTO(Family family) {
         FamilyResponseDTO response = new FamilyResponseDTO();
         response.setId(family.getId());
-       // response.setName(family.getName());
+        // response.setName(family.getName());
         response.setAddress(family.getAddress());
         response.setAnniversaryDate(family.getAnniversaryDate());
         response.setPhotoUrl(family.getPhotoUrl());
 
-        List<FamilyMemberResponseDTO> memberResponses = family.getFamilyMembers().stream()
+        List<MemberResponseDTO> memberResponses = family.getFamilyMembers().stream()
                 .map(member -> {
-                    FamilyMemberResponseDTO memberResponse = new FamilyMemberResponseDTO();
+                    MemberResponseDTO memberResponse = new MemberResponseDTO();
                     memberResponse.setId(member.getId());
                     memberResponse.setName(member.getName());
                     memberResponse.setDob(member.getDob());
@@ -316,12 +285,12 @@ public class FamilyService {
 
         response.setFamilyMembers(memberResponses);
         return response;
-    }
+    }*/
 
-    public List<FamilyMemberResponseDTO> searchFamilies(SearchRequest searchRequest) {
+    public List<MemberResponseDTO> searchFamilies(SearchRequest searchRequest) {
         Query query = buildSearchQuery(searchRequest);
-        List<FamilyMember> familyMembers = mongoTemplate.find(query, FamilyMember.class);
-        return mapToResponseDTOs(familyMembers);
+        List<Member> members = mongoTemplate.find(query, Member.class);
+        return mapToResponseDTOs(members);
     }
 
     private Query buildSearchQuery(SearchRequest searchRequest) {
@@ -332,9 +301,9 @@ public class FamilyService {
                 .skip((long) (searchRequest.getOffset() - 1) * searchRequest.getPageSize());
     }
 
-    private List<FamilyMemberResponseDTO> mapToResponseDTOs(List<FamilyMember> familyMembers) {
-        return familyMembers.stream()
-                .map(FamilyMemberResponseDTO::new)
+    private List<MemberResponseDTO> mapToResponseDTOs(List<Member> members) {
+        return members.stream()
+                .map(MemberResponseDTO::new)
                 .toList();
     }
 
