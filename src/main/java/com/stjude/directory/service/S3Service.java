@@ -5,9 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
@@ -61,6 +59,18 @@ public class S3Service {
 
         // Generate the pre-signed URL
         return s3Presigner.presignGetObject(presignRequest).url().toString();
+    }
+
+    public String generatePublicUrl(String fileName) {
+        // Set the object ACL to public-read
+        s3Client.putObjectAcl(PutObjectAclRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .acl(ObjectCannedACL.PUBLIC_READ)
+                .build());
+
+        // Construct the public URL
+        return "https://" + bucketName + ".s3.amazonaws.com/" + fileName;
     }
 
     public void deleteFileFromS3(String key) {
