@@ -6,7 +6,8 @@ import com.stjude.directory.model.Member;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -27,6 +28,26 @@ public class FamilyResponseDTO {
                 .stream()
                 .map(MemberResponseDTO::new)
                 .toList();
-        //this.couples = family.getAnniversaryDates();//todo -populate couple- do as part of feature-3
+        this.couples = getCouples(members, family.getAnniversaryDates());
+    }
+
+    private List<Couple> getCouples(List<Member> members, Map<Short, Date> anniversaryDates) {
+        // Group members by coupleNo for faster access
+        Map<Short, List<String>> membersByCoupleNo = members.stream()
+                .collect(Collectors.groupingBy(
+                        Member::getCoupleNo,
+                        Collectors.mapping(Member::getName, Collectors.toList())
+                ));
+
+        return anniversaryDates.entrySet().stream()
+                .map(entry -> {
+                    List<String> names = membersByCoupleNo.get(entry.getKey());
+                    if (names != null && names.size() >= 2) {
+                        return new Couple(names.get(0), names.get(1), entry.getValue());
+                    }
+                    return null; // Handle cases where names are missing or invalid
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
 }

@@ -50,7 +50,7 @@ public class FamilyService {
         // Handle photo upload
         if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
             String fileName = s3Service.uploadImage(familyRequest.getPhoto());
-            String photoUrl = s3Service.generatePresignedUrl(fileName);
+            String photoUrl = s3Service.generatePublicUrl(fileName);
             family.setPhotoUrl(photoUrl);
         }
 
@@ -132,7 +132,7 @@ public class FamilyService {
         // Handle photo upload
         if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
             String fileName = s3Service.uploadImage(familyRequest.getPhoto());
-            String photoUrl = s3Service.generatePresignedUrl(fileName);
+            String photoUrl = s3Service.generatePublicUrl(fileName);
             updatedFamily.setPhotoUrl(photoUrl);
         }
         familyRepository.save(updatedFamily);
