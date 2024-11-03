@@ -3,11 +3,14 @@ package com.stjude.directory.model;
 import com.stjude.directory.dto.CreateMemberRequest;
 import com.stjude.directory.dto.UpdateMemberRequest;
 import com.stjude.directory.enums.BloodGroup;
+import com.stjude.directory.enums.Role;
 import com.stjude.directory.enums.Unit;
 import com.stjude.directory.utils.StringOps;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.List;
 
 @Data
 @Document(collection = "family_members")
@@ -24,6 +27,8 @@ public class Member {
     private String address;
     private Unit unit;
     private Short coupleNo;
+    private String password;
+    private List<Role> roles;
 
     public Member(CreateMemberRequest request, String familyId, String address, Unit unit){
         this.id = StringOps.generateUUID();
@@ -37,6 +42,8 @@ public class Member {
         this.address = address;
         this.unit = unit;
         this.coupleNo = request.getCoupleNo();
+        this.password = request.getPassword();
+        this.roles = request.getRoles();
     }
 
     public Member(String id, CreateMemberRequest request, String familyId, String address, Unit unit){

@@ -5,6 +5,7 @@ import com.stjude.directory.model.Family;
 import com.stjude.directory.model.Member;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.util.CollectionUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,6 +33,9 @@ public class FamilyResponseDTO {
     }
 
     private List<Couple> getCouples(List<Member> members, Map<Short, Date> anniversaryDates) {
+        if (CollectionUtils.isEmpty(anniversaryDates)) {
+            return List.of();
+        }
         // Group members by coupleNo for faster access
         Map<Short, List<String>> membersByCoupleNo = members.stream()
                 .collect(Collectors.groupingBy(
