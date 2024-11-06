@@ -2,9 +2,9 @@ package com.stjude.directory.service;
 
 import com.stjude.directory.CriteriaHelper;
 import com.stjude.directory.dto.*;
-import com.stjude.directory.model.Family;
-import com.stjude.directory.model.Member;
-import com.stjude.directory.model.SearchRequest;
+import com.stjude.directory.enums.EvaluationType;
+import com.stjude.directory.enums.Operation;
+import com.stjude.directory.model.*;
 import com.stjude.directory.repository.FamilyRepository;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Service class for managing family entities and their members.
@@ -291,6 +292,43 @@ public class FamilyService {
         Query query = buildSearchQuery(searchRequest);
         List<Member> members = mongoTemplate.find(query, Member.class);
         return mapToResponseDTOs(members);
+    }
+
+    public Optional<Member> findFamilyHeadByUserName(String username) {
+        SearchRequest searchRequest = buildSearchRequest(username);
+        Query query = buildSearchQuery(searchRequest);
+        List<Member> members = mongoTemplate.find(query, Member.class);
+        return members.stream().findFirst();
+    }
+
+    private SearchRequest buildSearchRequest(String username) {
+        // Create filter for email ID
+        FieldFilter emailFilter = createFieldFilter("emailId", Operation.EQUALS, List.of(username));
+
+        // Create filter to check if the member is the family head
+        FieldFilter familyHeadFilter = createFieldFilter("isFamilyHead", Operation.EQUALS, List.of(true));
+
+        // Combine filters with AND evaluation
+        FilterCriteria filterCriteria = new FilterCriteria();
+        filterCriteria.setEvaluationType(EvaluationType.AND);
+        filterCriteria.setFilters(List.of(emailFilter, familyHeadFilter));
+
+        // Build the search request with the combined filter criteria
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setNode(filterCriteria);
+        searchRequest.setOffset(1);
+        searchRequest.setPageSize(1);
+
+        return searchRequest;
+    }
+
+    private FieldFilter createFieldFilter(String fieldName, Operation operation, List<Object> values) {
+        // Create and return a field filter with the specified parameters
+        FieldFilter fieldFilter = new FieldFilter();
+        fieldFilter.setFieldName(fieldName);
+        fieldFilter.setOperation(operation);
+        fieldFilter.setValues(values);
+        return fieldFilter;
     }
 
     private Query buildSearchQuery(SearchRequest searchRequest) {

@@ -2,11 +2,14 @@ package com.stjude.directory.dto;
 
 
 import com.stjude.directory.enums.BloodGroup;
+import com.stjude.directory.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class CreateMemberRequest {
@@ -32,4 +35,6 @@ public class CreateMemberRequest {
     private Boolean isFamilyHead;
 
     private Short coupleNo;
+    private String password;
+    private List<Role> roles;
 }

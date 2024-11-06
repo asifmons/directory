@@ -2,6 +2,7 @@ package com.stjude.directory.dto;
 
 
 import com.stjude.directory.enums.Unit;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -15,7 +16,7 @@ import java.util.Map;
 @Data
 public class CreateFamilyRequest {
 
-    @NotBlank(message = "Address is required")
+    @Nullable
     @Size(max = 200, message = "Address must be less than 200 characters")
     private String address;
 
