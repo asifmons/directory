@@ -12,10 +12,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Service class for managing family entities and their members.
@@ -96,7 +93,10 @@ public class FamilyService {
      */
     public FamilyResponseDTO getFamilyById(String id) {
         Family family = familyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Family not found"));
+                .orElse(null);
+        if (Objects.isNull(family)) {
+            return null;
+        }
 
         List<Member> members = memberService.getMembersByFamilyId(id);
         return new FamilyResponseDTO(family, members);

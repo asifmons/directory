@@ -5,6 +5,7 @@ import com.stjude.directory.enums.Unit;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Date;
@@ -22,6 +23,7 @@ public class UpdateFamilyRequest {
 
     private List<UpdateMemberRequest> familyMembers;
 
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Map<Short, Date> anniversaryDates;
 
     private Unit unit;

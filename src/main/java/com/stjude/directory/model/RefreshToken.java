@@ -13,6 +13,6 @@ public class RefreshToken {
     @Id
     private String id;
     private String emailId;
-    @Indexed(expireAfterSeconds = 0)
+    @Indexed(name = "expiryTime", expireAfterSeconds = 0) // TTL index to delete the document after expiryDate
     private Instant expiryTime;
 }
