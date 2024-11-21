@@ -50,6 +50,9 @@ public class FamilyController {
     @GetMapping("/{id}")
     public ResponseEntity<FamilyResponseDTO> getFamily(@PathVariable String id) {
         FamilyResponseDTO family = familyService.getFamilyById(id);
+        if (family == (null)) {
+            return ResponseEntity.notFound().build();
+        }
         return ResponseEntity.ok(family);
     }
 
