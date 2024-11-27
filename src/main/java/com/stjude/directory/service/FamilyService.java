@@ -11,7 +11,9 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -45,12 +47,12 @@ public class FamilyService {
     @Transactional
     public FamilyResponseDTO createFamily(CreateFamilyRequest familyRequest) throws Exception {
         Family family = new Family(familyRequest);
-        // Handle photo upload
-        if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
-            String fileName = s3Service.uploadImage(familyRequest.getPhoto());
-            String photoUrl = s3Service.generatePublicUrl(fileName);
-            family.setPhotoUrl(photoUrl);
-        }
+//        // Handle photo upload
+//        if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
+//            String fileName = s3Service.uploadImage(familyRequest.getPhoto());
+//            String photoUrl = s3Service.generatePublicUrl(fileName);
+//            family.setPhotoUrl(photoUrl);
+//        }
 
         Family savedFamily = familyRepository.save(family);
         List<Member> members = saveMembersFromFamily(familyRequest, savedFamily.getId());
@@ -130,12 +132,12 @@ public class FamilyService {
         }
         Family updatedFamily = new Family(id, familyRequest);
 
-        // Handle photo upload
-        if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
-            String fileName = s3Service.uploadImage(familyRequest.getPhoto());
-            String photoUrl = s3Service.generatePublicUrl(fileName);
-            updatedFamily.setPhotoUrl(photoUrl);
-        }
+//        // Handle photo upload
+//        if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
+//            String fileName = s3Service.uploadImage(familyRequest.getPhoto());
+//            String photoUrl = s3Service.generatePublicUrl(fileName);
+//            updatedFamily.setPhotoUrl(photoUrl);
+//        }
         familyRepository.save(updatedFamily);
 
         List<Member> members = new ArrayList<>();
@@ -345,4 +347,37 @@ public class FamilyService {
                 .toList();
     }
 
+    public String uploadPhoto(String familyId, MultipartFile file) throws IOException {
+        Family family = familyRepository.findById(familyId)
+                .orElseThrow(() -> new RuntimeException("Family not found with given id."));
+
+        if (file == null || file.isEmpty()) {
+            return "Photo is null or empty.";
+        }
+
+        if (file.getSize() > 102400) {
+            return "Photo size should be less than 100 KB.";
+        }
+
+        String fileName = s3Service.uploadImage(file);
+        String photoUrl = s3Service.generatePublicUrl(fileName);
+        family.setPhotoUrl(photoUrl);
+        familyRepository.save(family);
+        return photoUrl;
+    }
+
+    public String deletePhoto(String familyId) {
+        Family family = familyRepository.findById(familyId)
+                .orElseThrow(() -> new RuntimeException("Family not found with given id."));
+
+        // Optionally, delete the photo from S3
+        if (family.getPhotoUrl() == null || family.getPhotoUrl().isEmpty()) {
+            return "Photo not present for family.";
+        }
+        String key = extractS3KeyFromUrl(family.getPhotoUrl());
+        s3Service.deleteFileFromS3(key);
+        family.setPhotoUrl(null);
+        familyRepository.save(family);
+        return "Photo deleted successfully";
+    }
 }

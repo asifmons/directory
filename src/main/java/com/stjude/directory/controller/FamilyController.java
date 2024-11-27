@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -150,5 +151,30 @@ public class FamilyController {
     public ResponseEntity<List<MemberResponseDTO>> searchFamilyMembers(@RequestBody @Valid SearchRequest searchRequest) {
         List<MemberResponseDTO> families = familyService.searchFamilies(searchRequest);
         return ResponseEntity.ok(families);
+    }
+
+
+    @PostMapping("/{familyId}/upload-photo")
+    public ResponseEntity<String> uploadPhoto(
+            @PathVariable String familyId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            String response = familyService.uploadPhoto(familyId, file);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error uploading photo: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{familyId}/delete-photo")
+    public ResponseEntity<String> deletePhoto(@PathVariable String familyId) {
+        try {
+            String response = familyService.deletePhoto(familyId);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting photo: " + e.getMessage());
+        }
     }
 }
