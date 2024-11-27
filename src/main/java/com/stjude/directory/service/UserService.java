@@ -1,79 +1,39 @@
 package com.stjude.directory.service;
 
-import com.stjude.directory.dto.CreateFamilyRequest;
-import com.stjude.directory.dto.CreateMemberRequest;
-import com.stjude.directory.dto.UserCreateRequest;
+import com.stjude.directory.dto.MemberResponseDTO;
 import com.stjude.directory.enums.EvaluationType;
 import com.stjude.directory.enums.Operation;
-import com.stjude.directory.model.*;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
+import com.stjude.directory.model.FieldFilter;
+import com.stjude.directory.model.FilterCriteria;
+import com.stjude.directory.model.SearchRequest;
+import com.stjude.directory.model.UserMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.stjude.directory.service.JwtService.JWT_TOKEN_VALIDITY;
-import static com.stjude.directory.service.RefreshTokenService.REFRESH_TOKEN_VALIDITY;
+import static com.stjude.directory.service.AuthService.DEFAULT_OFFSET;
+import static org.springframework.beans.support.PagedListHolder.DEFAULT_PAGE_SIZE;
 
-@Service
+@Component
 public class UserService {
-
-    private final PasswordEncoder passwordEncoder;
-    private final FamilyService familyService;
-
-    private final JwtService jwtService;
-    private final RefreshTokenService refreshTokenService;
-
-    private static final int DEFAULT_PAGE_SIZE = 1;
-    private static final int DEFAULT_OFFSET = 1;
-
     @Autowired
-    public UserService(PasswordEncoder passwordEncoder, FamilyService familyService,
-                       JwtService jwtService, RefreshTokenService refreshTokenService) {
-        this.passwordEncoder = passwordEncoder;
-        this.familyService = familyService;
-        this.jwtService = jwtService;
-        this.refreshTokenService = refreshTokenService;
+    private FamilyService familyService;
+    public ResponseEntity<UserMetadata> getUserMetaData(String userEmail) {
+        List<MemberResponseDTO> members = familyService.searchFamilies(createSearchRequest(userEmail));
+        MemberResponseDTO member = members.getFirst();
+        return mapDataToMetaData(member);
     }
 
-    public void createNewUser(UserCreateRequest userCreateRequest) {
-        try {
-            CreateFamilyRequest familyRequest = mapUserCreateRequestToFamilyRequest(userCreateRequest);
-            familyService.createFamily(familyRequest);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to create new user", e);
-        }
-    }
-
-    private CreateFamilyRequest mapUserCreateRequestToFamilyRequest(UserCreateRequest userCreateRequest) {
-        CreateFamilyRequest createFamilyRequest = new CreateFamilyRequest();
-        createFamilyRequest.setUnit(userCreateRequest.getUnit());
-
-        CreateMemberRequest memberRequest = new CreateMemberRequest();
-        memberRequest.setName(userCreateRequest.getName());
-        memberRequest.setEmailId(userCreateRequest.getUsername());
-        memberRequest.setPassword(passwordEncoder.encode(userCreateRequest.getPassword()));
-        memberRequest.setRoles(userCreateRequest.getRoles());
-        memberRequest.setIsFamilyHead(true);
-
-        createFamilyRequest.setFamilyMembers(List.of(memberRequest));
-        return createFamilyRequest;
-    }
-
-    public LoginResponse generateToken(String emailId) {
-        String jwtToken = jwtService.createToken(emailId);
-        String refreshToken = refreshTokenService.createToken(emailId);
-
-        return createLoginResponse(jwtToken, refreshToken);
-    }
-
-    private LoginResponse createLoginResponse(String jwtToken, String refreshToken) {
-        LoginResponse loginResponse = new LoginResponse();
-        loginResponse.setAccessToken(jwtToken);
-        loginResponse.setRefreshToken(refreshToken);
-        loginResponse.setAccessTokenTTL(JWT_TOKEN_VALIDITY);
-        loginResponse.setRefreshTokenTTL(REFRESH_TOKEN_VALIDITY);
-        return loginResponse;
+    private ResponseEntity<UserMetadata> mapDataToMetaData(MemberResponseDTO member) {
+        UserMetadata userMetadata = new UserMetadata();
+        userMetadata.setUserId(member.getId());
+        userMetadata.setUnit(member.getUnit());
+        userMetadata.setFamilyId(member.getFamilyId());
+        userMetadata.setRoles(member.getRoles());
+        userMetadata.setEmailId(member.getEmailId());
+        return ResponseEntity.ok(userMetadata);
     }
 
     private SearchRequest createSearchRequest(String emailId) {
