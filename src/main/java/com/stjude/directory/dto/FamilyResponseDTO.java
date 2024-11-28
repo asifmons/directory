@@ -1,5 +1,6 @@
 package com.stjude.directory.dto;
 
+import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.Couple;
 import com.stjude.directory.model.Family;
 import com.stjude.directory.model.Member;
@@ -19,6 +20,7 @@ public class FamilyResponseDTO {
     private List<MemberResponseDTO> familyMembers;
     private List<Couple> couples;
     private String houseName;
+    private Unit unit;
 
     public FamilyResponseDTO(Family family, List<Member> members) {
         this.id = family.getId();
@@ -30,6 +32,7 @@ public class FamilyResponseDTO {
                 .map(MemberResponseDTO::new)
                 .toList();
         this.couples = getCouples(members, family.getAnniversaryDates());
+        this.unit = family.getUnit();
     }
 
     private List<Couple> getCouples(List<Member> members, Map<Short, Date> anniversaryDates) {
@@ -37,7 +40,7 @@ public class FamilyResponseDTO {
             return List.of();
         }
         // Group members by coupleNo for faster access
-        Map<Short, List<String>> membersByCoupleNo = members.stream()
+        Map<Short, List<String>> membersByCoupleNo = members.stream().filter(member -> Objects.nonNull(member.getCoupleNo()))
                 .collect(Collectors.groupingBy(
                         Member::getCoupleNo,
                         Collectors.mapping(Member::getName, Collectors.toList())
