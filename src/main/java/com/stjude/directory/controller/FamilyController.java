@@ -177,4 +177,15 @@ public class FamilyController {
                     .body("Error deleting photo: " + e.getMessage());
         }
     }
+
+    @PostMapping("/upload-csv")
+    public ResponseEntity<String> uploadCSV(@RequestParam("file") MultipartFile file) {
+        try {
+            familyService.uploadFamilyData(file);
+            return ResponseEntity.ok("CSV data uploaded successfully.");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error processing CSV file: " + e.getMessage());
+        }
+    }
+
 }

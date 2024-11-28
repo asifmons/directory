@@ -1,20 +1,31 @@
 package com.stjude.directory.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.opencsv.CSVReader;
 import com.stjude.directory.CriteriaHelper;
 import com.stjude.directory.dto.*;
+import com.stjude.directory.enums.BloodGroup;
 import com.stjude.directory.enums.EvaluationType;
 import com.stjude.directory.enums.Operation;
+import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.*;
 import com.stjude.directory.repository.FamilyRepository;
+import com.stjude.directory.utils.StringOps;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Service class for managing family entities and their members.
@@ -29,12 +40,15 @@ public class FamilyService {
     private final S3Service s3Service;
     private final MongoTemplate mongoTemplate;
 
+    private final PasswordEncoder passwordEncoder;
+
     public FamilyService(FamilyRepository familyRepository, MemberService memberService,
-                         S3Service s3Service, MongoTemplate mongoTemplate) {
+                         S3Service s3Service, MongoTemplate mongoTemplate, PasswordEncoder passwordEncoder) {
         this.familyRepository = familyRepository;
         this.memberService = memberService;
         this.s3Service = s3Service;
         this.mongoTemplate = mongoTemplate;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -74,16 +88,16 @@ public class FamilyService {
     /**
      * Adds a new family member to a specified family.
      *
-     * @param familyId      the ID of the family to which the member will be added
+     * @param familyId       the ID of the family to which the member will be added
      * @param memberRequests the request data for the new family member
      * @return the updated FamilyResponseDTO containing the family details
      */
     public void addFamilyMember(String familyId, List<CreateMemberRequest> memberRequests) {
         Family family = familyRepository.findById(familyId)
                 .orElseThrow(() -> new RuntimeException("Family not found"));
-       memberRequests.stream()
-               .map(memReq-> new Member(memReq, familyId, family.getAddress(), family.getUnit()))
-               .forEach(memberService::saveMember);
+        memberRequests.stream()
+                .map(memReq -> new Member(memReq, familyId, family.getAddress(), family.getUnit()))
+                .forEach(memberService::saveMember);
     }
 
     /**
@@ -380,4 +394,149 @@ public class FamilyService {
         familyRepository.save(family);
         return "Photo deleted successfully";
     }
+
+
+    public void uploadFamilyData(MultipartFile file) throws Exception {
+        validateFile(file); // Step 1: Validate the file
+        List<String[]> csvRows = parseCSV(file); // Step 2: Parse the CSV
+        //List<Family> families = mapToFamilyEntities(csvRows); // Step 3: Map rows to Family entities
+        Map<String, List<MemberRowCSVTemplate>> familyGroup = groupMembersByFamilyId(csvRows);
+        saveFamilies(familyGroup); // Step 4: Save to database
+    }
+
+    public Map<String, List<MemberRowCSVTemplate>> groupMembersByFamilyId(List<String[]> csvRows) {
+
+        // Group members by familyId
+        return csvRows.stream()
+                .filter(row -> row.length > 0 && row[0] != null && !row[0].trim().isEmpty())  // Filter out null or empty familyId
+                .collect(Collectors.groupingBy(
+                        row -> row[0].trim(), // Key: familyId
+                        Collectors.mapping(row -> {
+                            try {
+                                return mapToFamilyEntities(row);
+                            } catch (ParseException e) {
+                                throw new IllegalArgumentException("Error parsing row: " + Arrays.toString(row), e);
+                            }
+                        }, Collectors.toList()) // Value: List<Member>
+                ));
+    }
+
+    // Step 1: Validate the uploaded file
+    private void validateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("The uploaded file is empty.");
+        }
+        if (file.getOriginalFilename() != null && !file.getOriginalFilename().endsWith(".csv")) {
+            throw new IllegalArgumentException("Only CSV files are allowed.");
+        }
+    }
+
+    // Step 2: Parse the CSV file into rows
+    private List<String[]> parseCSV(MultipartFile file) throws Exception {
+        try (CSVReader reader = new CSVReader(new InputStreamReader(file.getInputStream()))) {
+            List<String[]> rows = new ArrayList<>();
+            String[] nextLine;
+            // Skip the header line
+            reader.readNext();
+            while ((nextLine = reader.readNext()) != null) {
+                rows.add(nextLine);
+            }
+            if (rows.isEmpty()) {
+                throw new IllegalArgumentException("The CSV file is empty or only contains headers.");
+            }
+            return rows;
+        }
+    }
+
+    // Step 3: Map each row to a Family entity
+    private MemberRowCSVTemplate mapToFamilyEntities(String[] row) throws ParseException {
+        //List<Member> families = new ArrayList<>();
+//        for (String[] row : csvRows) {
+//            if(row[0].isEmpty()){
+//                continue;
+//            }
+//            if (row.length < 3) {
+//                throw new IllegalArgumentException("Invalid CSV format. Each row must have at least 3 columns: familyId, name, photo.");
+//            }
+//
+////            Family family = new Family();
+////            family.setFamilyId(row[0].trim());
+////            family.setName(row[1].trim());
+////            family.setPhoto(row[2].trim());
+////            families.add(family);
+//        }
+
+        MemberRowCSVTemplate member = new MemberRowCSVTemplate();
+        try {
+            member = MemberRowCSVTemplate.builder()
+                    .familyId(row[0])
+                    .address(row[1])
+                    .houseName(row[2])
+                    .memberName(row[3])
+                    .relation(row[4])
+                    .dob(row[5])
+                    .phoneNumber(row[6])
+                    .bloodGroup(BloodGroup.getNameForDisplayValue(row[7]))
+                    .isFamilyHead(Boolean.parseBoolean(row[8]))
+                    .emailId(row[9])
+                    .unit(Unit.getByDisplayValue(row[10]))
+                    .anniversaryDate((row[11] == null || row[11].isEmpty()) ? null : new SimpleDateFormat("dd-MM-yyyy").parse(row[11].trim()))
+                    .password(Boolean.parseBoolean(row[8]) ? passwordEncoder.encode("test123") : null)
+                    .salutation(row[12])
+                    .build();
+        } catch (ParseException e) {
+            System.out.println(e);
+        }
+        return member;
+    }
+
+    // Step 4: Save the list of Family entities to the database
+    private void saveFamilies(Map<String, List<MemberRowCSVTemplate>> familyGroup) {
+
+        familyGroup.entrySet().forEach(
+
+                entry -> {
+                    Family family = new Family(entry.getValue().getFirst());
+                    Map<Short, Date> anniversaryDates = groupAnniversaryDates(entry.getValue());
+                    family.setAnniversaryDates(anniversaryDates);
+
+                    List<Member> members = entry.getValue().stream().map(m -> new Member(m, family.getId())).toList();
+
+                    familyRepository.save(family);
+                     memberService.saveAllMembers(members);
+//                    try {
+//                        System.out.println(new ObjectMapper().writeValueAsString(family));
+//                        System.out.println(new ObjectMapper().writeValueAsString(members));
+//                    } catch (JsonProcessingException e) {
+//                        throw new RuntimeException(e);
+//                    }
+
+
+                    //todo - set coupleno for members
+                }
+
+        );
+    }
+
+    public Map<Short, Date> groupAnniversaryDates(List<MemberRowCSVTemplate> members) {
+        // Map to store unique Short keys for each anniversary date
+        Map<Date, Short> dateToKeyMap = new HashMap<>();
+        Map<Short, Date> result = new LinkedHashMap<>();
+        short coupleNumber = 1;
+
+        // Group members by unique anniversary dates
+        for (MemberRowCSVTemplate member : members) {
+            Date anniversaryDate = member.getAnniversaryDate();
+            if (anniversaryDate != null) {
+                // Assign a unique Short key if the date is not already mapped
+                dateToKeyMap.putIfAbsent(anniversaryDate, coupleNumber++);
+                member.setCoupleNo(dateToKeyMap.get(anniversaryDate));
+                // Populate the result map with the Short key and Date
+                result.put(dateToKeyMap.get(anniversaryDate), anniversaryDate);
+            }
+        }
+
+        return result;
+    }
+
 }
