@@ -1,6 +1,7 @@
 package com.stjude.directory.model;
 
 import com.stjude.directory.dto.CreateFamilyRequest;
+import com.stjude.directory.dto.MemberRowCSVTemplate;
 import com.stjude.directory.dto.UpdateFamilyRequest;
 import com.stjude.directory.enums.Unit;
 import com.stjude.directory.utils.StringOps;
@@ -20,7 +21,7 @@ public class Family {
     @Id
     private String id;
     private String address;
-    private String anniversaryDate; // Consider using LocalDate for date handling
+    //private String anniversaryDate; // Consider using LocalDate for date handling
     private String photoUrl;
     private Unit unit;
     private Map<Short, Date> anniversaryDates;
@@ -47,6 +48,13 @@ public class Family {
         this.unit = request.getUnit();
         this.anniversaryDates = request.getAnniversaryDates();
         this.houseName = request.getHouseName();
+    }
+
+    public Family(MemberRowCSVTemplate template) {
+        this.id = StringOps.generateUUID();
+        this.address = template.getAddress();
+        this.unit = template.getUnit();
+        this.houseName = template.getHouseName();
     }
 
 }

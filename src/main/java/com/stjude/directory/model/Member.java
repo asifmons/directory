@@ -1,11 +1,14 @@
 package com.stjude.directory.model;
 
 import com.stjude.directory.dto.CreateMemberRequest;
+import com.stjude.directory.dto.MemberRowCSVTemplate;
 import com.stjude.directory.dto.UpdateMemberRequest;
 import com.stjude.directory.enums.BloodGroup;
 import com.stjude.directory.enums.Role;
 import com.stjude.directory.enums.Unit;
 import com.stjude.directory.utils.StringOps;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -15,11 +18,13 @@ import java.util.List;
 @Data
 @Document(collection = "family_members")
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Member {
     private String id;  // Unique ID for each family member
     private String familyId;
     private String name;
-    private String dob;
+    private String dob;//should be in 23-12
     private String phoneNumber;
     private String emailId;
     private BloodGroup bloodGroup;
@@ -27,6 +32,7 @@ public class Member {
     private String address;
     private Unit unit;
     private Short coupleNo;
+    private String salutation;//todo - add this in all requests
     private String password;
     private List<Role> roles;
 
@@ -72,6 +78,22 @@ public class Member {
         this.address = address;
         this.unit = unit;
         this.coupleNo = request.getCoupleNo();
+    }
+
+    public Member(MemberRowCSVTemplate template, String familyId){
+        this.id = StringOps.generateUUID();
+        this.familyId = familyId;
+        this.name = template.getMemberName();
+        this.dob = template.getDob();
+        this.phoneNumber = template.getPhoneNumber();
+        this.emailId = template.getEmailId();
+        this.bloodGroup = template.getBloodGroup();
+        this.isFamilyHead = template.getIsFamilyHead();
+        this.address = template.getAddress();
+        this.unit = template.getUnit();
+        this.coupleNo = template.getCoupleNo();
+        this.password = template.getPassword();
+        this.salutation = template.getSalutation();
     }
 
 }
