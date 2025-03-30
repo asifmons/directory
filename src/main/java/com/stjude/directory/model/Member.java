@@ -11,6 +11,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
@@ -35,6 +36,7 @@ public class Member {
     private String salutation;//todo - add this in all requests
     private String password;
     private List<Role> roles;
+    private Short parentCoupleNo;
 
     public Member(CreateMemberRequest request, String familyId, String address, Unit unit){
         this.id = StringOps.generateUUID();

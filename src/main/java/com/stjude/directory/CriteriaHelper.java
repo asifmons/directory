@@ -18,6 +18,9 @@ public class CriteriaHelper {
         List<Criteria> criteriaList = filterCriteria.getFilters().stream()
                 .map(CriteriaHelper::createCriteria)
                 .toList();
+        if (criteriaList.isEmpty()) {
+            return new Criteria();
+        }
 
         return filterCriteria.getEvaluationType() == EvaluationType.AND
                 ? new Criteria().andOperator(criteriaList)

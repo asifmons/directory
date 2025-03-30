@@ -30,4 +30,6 @@ public class MemberRowCSVTemplate {
     private String salutation;
     private Short coupleNo;
     private String password;
+    private Integer sNo;
+    private Integer parentId;
 }

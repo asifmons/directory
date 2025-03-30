@@ -483,6 +483,7 @@ public class FamilyService {
                     .anniversaryDate((row[11] == null || row[11].isEmpty()) ? null : new SimpleDateFormat("dd-MM-yyyy").parse(row[11].trim()))
                     .password(Boolean.parseBoolean(row[8]) ? passwordEncoder.encode("test123") : null)
                     .salutation(row[12])
+                    .parentId(row[13] == null || row[13].isEmpty() ? null : Integer.parseInt(row[13]))
                     .build();
         } catch (ParseException e) {
             System.out.println(e);
