@@ -1,24 +1,24 @@
 package com.stjude.directory.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.Objects;
+import java.util.UUID;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class UnitCreateRequestDTO {
     private Integer numberOfFamilies;
     private String president;
     private String vicePresident;
     private String secretary;
     private String treasurer;
+    private String jointSecretary;
+    private String jointTreasurer;
 
-    public UnitCreateRequestDTO(int numberOfFamilies, String president, String vicePresident, String secretary, String treasurer) {
-        this.numberOfFamilies = numberOfFamilies;
-        this.president = president;
-        this.vicePresident = vicePresident;
-        this.secretary = secretary;
-        this.treasurer = treasurer;
-    }
 
     @Override
     public boolean equals(Object o) {
