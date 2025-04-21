@@ -100,6 +100,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.2.0</version> <!-- Use latest stable version -->
+		</dependency>
+
+
 		<!-- JUnit 5 (Jupiter) -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>

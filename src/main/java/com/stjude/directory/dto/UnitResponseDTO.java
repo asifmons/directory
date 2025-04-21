@@ -8,8 +8,10 @@ import lombok.Data;
 public class UnitResponseDTO {
     private String id;
     private Integer numberOfFamilies;
-    private String president;
-    private String vicePresident;
-    private String secretary;
-    private String treasurer;
+    private UnitExecutive president;
+    private UnitExecutive vicePresident;
+    private UnitExecutive secretary;
+    private UnitExecutive treasurer;
+    private UnitExecutive jointSecretary;
+    private UnitExecutive jointTreasurer;
 }

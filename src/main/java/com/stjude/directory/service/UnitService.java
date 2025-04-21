@@ -1,8 +1,10 @@
 package com.stjude.directory.service;
 
 import com.stjude.directory.dto.UnitCreateRequestDTO;
+import com.stjude.directory.dto.UnitExecutive;
 import com.stjude.directory.dto.UnitResponseDTO;
 import com.stjude.directory.dto.UnitUpdateRequestDTO;
+import com.stjude.directory.model.Member;
 import com.stjude.directory.model.Unit;
 import com.stjude.directory.repository.UnitRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +25,22 @@ public  class UnitService {
     private MongoTemplate mongoTemplate;
 
     @Autowired
+    private MemberService memberService;
+
+    @Autowired
     public UnitService(UnitRepository unitRepository) {
         this.unitRepository = unitRepository;
     }
 
     public Unit createUnit(UnitCreateRequestDTO dto) {
-        Unit unit = new Unit(dto.getNumberOfFamilies(), dto.getPresident(), dto.getVicePresident(), dto.getSecretary(), dto.getTreasurer());
+        Unit unit = new Unit();
+        unit.setNumberOfFamilies(dto.getNumberOfFamilies());
+        unit.setPresident(dto.getPresident());
+        unit.setVicePresident(dto.getVicePresident());
+        unit.setSecretary(dto.getSecretary());
+        unit.setTreasurer(dto.getTreasurer());
+        unit.setJointSecretary(dto.getJointSecretary());
+        unit.setJointTreasurer(dto.getJointTreasurer());
         unit.setId(UUID.randomUUID().toString());
         return unitRepository.save(unit);
     }
@@ -58,9 +70,23 @@ public  class UnitService {
 
     public UnitResponseDTO getUnitById(String unitId) {
         Unit unit = unitRepository.findById(unitId).orElseThrow(() -> new RuntimeException("Unit not found"));
+        Member president = memberService.getMemberById(unit.getPresident());
+        UnitExecutive presidentDetail = new UnitExecutive(president.getName(), president.getFamilyId(), president.getPhoneNumber());
+        Member vicePresident = memberService.getMemberById(unit.getVicePresident());
+        UnitExecutive vicePresidentDetail = new UnitExecutive(vicePresident.getName(), vicePresident.getFamilyId(), vicePresident.getPhoneNumber());
+        Member secretary = memberService.getMemberById(unit.getSecretary());
+        UnitExecutive secretaryDetail = new UnitExecutive(secretary.getName(), secretary.getFamilyId(), secretary.getPhoneNumber());
+        Member treasurer = memberService.getMemberById(unit.getTreasurer());
+        UnitExecutive treasurerDetail = new UnitExecutive(treasurer.getName(), treasurer.getFamilyId(), treasurer.getPhoneNumber());
+        Member jointSecretary = memberService.getMemberById(unit.getJointSecretary());
+        UnitExecutive jointSecretaryDetail = new UnitExecutive(jointSecretary.getName(), jointSecretary.getFamilyId(), jointSecretary.getPhoneNumber());
+        Member jointTreasurer = memberService.getMemberById(unit.getJointTreasurer());
+        UnitExecutive jointTreasurerDetail = new UnitExecutive(jointTreasurer.getName(), jointTreasurer.getFamilyId(), jointTreasurer.getPhoneNumber());
+
+
+
         return new UnitResponseDTO(unit.getId(), unit.getNumberOfFamilies(),
-                unit.getPresident(), unit.getVicePresident(),
-                unit.getSecretary(), unit.getTreasurer());
+                presidentDetail, vicePresidentDetail, secretaryDetail, treasurerDetail, jointSecretaryDetail, jointTreasurerDetail);
     }
 
     public void deleteUnit(String id) {
@@ -69,9 +95,7 @@ public  class UnitService {
 
     public List<UnitResponseDTO> getAllUnits() {
         return unitRepository.findAll().stream()
-                .map(unit -> new UnitResponseDTO(unit.getId(), unit.getNumberOfFamilies(),
-                        unit.getPresident(), unit.getVicePresident(),
-                        unit.getSecretary(), unit.getTreasurer()))
+                .map(unit -> getUnitById(unit.getId()))
                 .toList();
     }
 }
