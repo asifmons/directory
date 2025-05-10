@@ -9,6 +9,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -19,8 +20,7 @@ public class CreateMemberRequest {
     private String name;
 
     @NotBlank(message = "Date of Birth is required")
-    @Pattern(regexp = "^(0\\d|1[0-2])-(0\\d|[1-2]\\d|3[0-1])$", message = "Date of Birth must be in MM-dd format")
-    private String dob;
+    private Date dob;
 
     @NotBlank(message = "Phone number is required")
     @Pattern(regexp = "^\\d{10,12}$", message = "Phone number must be between 10 and 12 digits")

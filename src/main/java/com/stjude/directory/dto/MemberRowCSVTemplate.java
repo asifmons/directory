@@ -1,6 +1,7 @@
 package com.stjude.directory.dto;
 
 import com.stjude.directory.enums.BloodGroup;
+import com.stjude.directory.enums.Status;
 import com.stjude.directory.enums.Unit;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +21,7 @@ public class MemberRowCSVTemplate {
     private String houseName;
     private String memberName;
     private String relation;
-    private String dob;
+    private Date dob;
     private String phoneNumber;
     private BloodGroup bloodGroup;
     private Boolean isFamilyHead;
@@ -30,6 +31,6 @@ public class MemberRowCSVTemplate {
     private String salutation;
     private Short coupleNo;
     private String password;
-    private Integer sNo;
-    private Integer parentId;
+    private Status status;
+    private Date expiryDate;
 }

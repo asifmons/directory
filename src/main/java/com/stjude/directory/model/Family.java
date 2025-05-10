@@ -14,18 +14,20 @@ import java.util.Date;
 import java.util.Map;
 
 @Data
-@Document(collection = "families")
+@Document(collection = "FAMILY")
 @NoArgsConstructor
 public class Family {
 
     @Id
     private String id;
+    private String churchNo;
     private String address;
     //private String anniversaryDate; // Consider using LocalDate for date handling
     private String photoUrl;
     private Unit unit;
     private Map<Short, Date> anniversaryDates;
     private String houseName;
+    private String aathmaSthithiNumber;
 
     public Family(CreateFamilyRequest request) {
         this.id = StringOps.generateUUID();
@@ -55,6 +57,7 @@ public class Family {
         this.address = template.getAddress();
         this.unit = template.getUnit();
         this.houseName = template.getHouseName();
+        this.aathmaSthithiNumber = template.getFamilyId();
     }
 
 }
