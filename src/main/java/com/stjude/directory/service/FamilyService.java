@@ -5,9 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.CSVReader;
 import com.stjude.directory.CriteriaHelper;
 import com.stjude.directory.dto.*;
-import com.stjude.directory.enums.BloodGroup;
-import com.stjude.directory.enums.EvaluationType;
-import com.stjude.directory.enums.Operation;
+import com.stjude.directory.enums.*;
 import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.*;
 import com.stjude.directory.repository.FamilyRepository;
@@ -404,21 +402,33 @@ public class FamilyService {
         saveFamilies(familyGroup); // Step 4: Save to database
     }
 
-    public Map<String, List<MemberRowCSVTemplate>> groupMembersByFamilyId(List<String[]> csvRows) {
+   public Map<String, List<MemberRowCSVTemplate>> groupMembersByFamilyId(List<String[]> csvRows) {
+        Map<String, List<MemberRowCSVTemplate>> grouped = new LinkedHashMap<>();
+        String currentFamilyId = null;
 
-        // Group members by familyId
-        return csvRows.stream()
-                .filter(row -> row.length > 0 && row[0] != null && !row[0].trim().isEmpty())  // Filter out null or empty familyId
-                .collect(Collectors.groupingBy(
-                        row -> row[0].trim(), // Key: familyId
-                        Collectors.mapping(row -> {
-                            try {
-                                return mapToFamilyEntities(row);
-                            } catch (ParseException e) {
-                                throw new IllegalArgumentException("Error parsing row: " + Arrays.toString(row), e);
-                            }
-                        }, Collectors.toList()) // Value: List<Member>
-                ));
+        for (String[] row : csvRows) {
+            if (row.length == 0) continue;
+            String familyId = (row[0] != null && !row[0].trim().isEmpty()) ? row[0].trim() : null;
+
+            if (familyId != null) {
+                currentFamilyId = familyId;
+                grouped.putIfAbsent(currentFamilyId, new ArrayList<>());
+            } else if (currentFamilyId == null) {
+                // Skip rows without a familyId if no group has started
+                continue;
+            }
+
+            try {
+                MemberRowCSVTemplate memberRow = mapToFamilyEntities(row);
+                if (!grouped.get(currentFamilyId).isEmpty()) {
+                    memberRow.setAddress(grouped.get(currentFamilyId).getFirst().getAddress());
+                }
+                grouped.get(currentFamilyId).add(memberRow);
+            } catch (ParseException e) {
+                throw new IllegalArgumentException("Error parsing row: " + Arrays.toString(row), e);
+            }
+        }
+        return grouped;
     }
 
     // Step 1: Validate the uploaded file
@@ -474,19 +484,20 @@ public class FamilyService {
                     .houseName(row[2])
                     .memberName(row[3])
                     .relation(row[4])
-                    .dob(row[5])
+                    .dob(row[5] == null || row[5].isEmpty() ? null : new SimpleDateFormat("dd.MM.yyyy").parse(row[5].trim()))
                     .phoneNumber(row[6])
                     .bloodGroup(BloodGroup.getNameForDisplayValue(row[7]))
                     .isFamilyHead(Boolean.parseBoolean(row[8]))
                     .emailId(row[9])
                     .unit(Unit.getByDisplayValue(row[10]))
-                    .anniversaryDate((row[11] == null || row[11].isEmpty()) ? null : new SimpleDateFormat("dd-MM-yyyy").parse(row[11].trim()))
+                    .anniversaryDate((row[11] == null || row[11].isEmpty()) || "NA".equals(row[11]) ? null : new SimpleDateFormat("dd.MM.yyyy").parse(row[11].trim()))
                     .password(Boolean.parseBoolean(row[8]) ? passwordEncoder.encode("test123") : null)
                     .salutation(row[12])
-                    .parentId(row[13] == null || row[13].isEmpty() ? null : Integer.parseInt(row[13]))
+                    .status(row[13] == null || row[13].isEmpty() ? Status.ACTIVE : Status.getByDisplayValue(row[13]))
+                    .expiryDate((row[14] == null || row[14].isEmpty()) ? null : new SimpleDateFormat("dd.MM.yyyy").parse(row[14].trim()))
                     .build();
-        } catch (ParseException e) {
-            System.out.println(e);
+        } catch (Exception exception) {
+            System.out.println("Error parsing row: " + Arrays.toString(row));
         }
         return member;
     }
@@ -504,13 +515,14 @@ public class FamilyService {
                     List<Member> members = entry.getValue().stream().map(m -> new Member(m, family.getId())).toList();
 
                     familyRepository.save(family);
-                     memberService.saveAllMembers(members);
+                    memberService.saveAllMembers(members);
 //                    try {
 //                        System.out.println(new ObjectMapper().writeValueAsString(family));
 //                        System.out.println(new ObjectMapper().writeValueAsString(members));
 //                    } catch (JsonProcessingException e) {
 //                        throw new RuntimeException(e);
 //                    }
+
 
 
                     //todo - set coupleno for members

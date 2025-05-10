@@ -5,6 +5,7 @@ import com.stjude.directory.dto.MemberRowCSVTemplate;
 import com.stjude.directory.dto.UpdateMemberRequest;
 import com.stjude.directory.enums.BloodGroup;
 import com.stjude.directory.enums.Role;
+import com.stjude.directory.enums.Status;
 import com.stjude.directory.enums.Unit;
 import com.stjude.directory.utils.StringOps;
 import lombok.AllArgsConstructor;
@@ -14,10 +15,11 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
 import java.util.List;
 
 @Data
-@Document(collection = "family_members")
+@Document(collection = "MEMBER")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -25,7 +27,7 @@ public class Member {
     private String id;  // Unique ID for each family member
     private String familyId;
     private String name;
-    private String dob;//should be in 23-12
+    private Date dob;//should be in 23-12
     private String phoneNumber;
     private String emailId;
     private BloodGroup bloodGroup;
@@ -37,6 +39,9 @@ public class Member {
     private String password;
     private List<Role> roles;
     private Short parentCoupleNo;
+    private Status status;
+    private Date expiryDate;
+    private String houseName;
 
     public Member(CreateMemberRequest request, String familyId, String address, Unit unit){
         this.id = StringOps.generateUUID();
@@ -96,6 +101,8 @@ public class Member {
         this.coupleNo = template.getCoupleNo();
         this.password = template.getPassword();
         this.salutation = template.getSalutation();
+        this.status = template.getStatus();
+        this.expiryDate = template.getExpiryDate();
     }
 
 }
