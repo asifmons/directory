@@ -22,6 +22,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -460,22 +464,6 @@ public class FamilyService {
 
     // Step 3: Map each row to a Family entity
     private MemberRowCSVTemplate mapToFamilyEntities(String[] row) throws ParseException {
-        //List<Member> families = new ArrayList<>();
-//        for (String[] row : csvRows) {
-//            if(row[0].isEmpty()){
-//                continue;
-//            }
-//            if (row.length < 3) {
-//                throw new IllegalArgumentException("Invalid CSV format. Each row must have at least 3 columns: familyId, name, photo.");
-//            }
-//
-////            Family family = new Family();
-////            family.setFamilyId(row[0].trim());
-////            family.setName(row[1].trim());
-////            family.setPhoto(row[2].trim());
-////            families.add(family);
-//        }
-
         MemberRowCSVTemplate member = new MemberRowCSVTemplate();
         try {
             member = MemberRowCSVTemplate.builder()
@@ -498,6 +486,24 @@ public class FamilyService {
                     .build();
         } catch (Exception exception) {
             System.out.println("Error parsing row: " + Arrays.toString(row));
+        }
+        LocalDate localDate = null;
+
+        Instant utcInstant = null;
+        if (member.getDob() != null) {
+            localDate = member.getDob().toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+            utcInstant = localDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+            member.setDob(Date.from(utcInstant));
+        }
+
+        if (member.getExpiryDate() != null) {
+             localDate = member.getExpiryDate().toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+             utcInstant = localDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+            member.setExpiryDate(Date.from(utcInstant));
         }
         return member;
     }

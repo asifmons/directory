@@ -40,4 +40,11 @@ public class AuthController {
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
                 "Invalid User Credentials provided");
     }
+
+    @PostMapping("reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody LoginRequest loginRequest) {
+         authService.resetPassword(loginRequest);
+        return ResponseEntity.ok("Password reset successfully");
+    }
+
 }

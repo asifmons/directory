@@ -29,7 +29,8 @@ public class MemberResponseDTO {
         this.setId(member.getId());
         this.setFamilyId(member.getFamilyId());
         this.setName(member.getName());
-        this.setDob(new SimpleDateFormat("dd-MM-yy").format(member.getDob()));
+        this.setDob(member.getDob() != null ? new SimpleDateFormat("dd-MM-yy").format(member.getDob())
+                : null);
         this.setPhoneNumber(member.getPhoneNumber());
         this.setBloodGroup(member.getBloodGroup());
         this.setIsFamilyHead(member.getIsFamilyHead());

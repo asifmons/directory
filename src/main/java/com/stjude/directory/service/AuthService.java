@@ -14,12 +14,14 @@ import java.util.List;
 
 import static com.stjude.directory.service.JwtService.JWT_TOKEN_VALIDITY;
 import static com.stjude.directory.service.RefreshTokenService.REFRESH_TOKEN_VALIDITY;
+import static org.springframework.beans.support.PagedListHolder.DEFAULT_PAGE_SIZE;
 
 @Service
 public class AuthService {
 
     private final PasswordEncoder passwordEncoder;
     private final FamilyService familyService;
+    private final MemberService memberService;
 
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
@@ -29,11 +31,12 @@ public class AuthService {
 
     @Autowired
     public AuthService(PasswordEncoder passwordEncoder, FamilyService familyService,
-                       JwtService jwtService, RefreshTokenService refreshTokenService) {
+                       JwtService jwtService, RefreshTokenService refreshTokenService, MemberService memberService) {
         this.passwordEncoder = passwordEncoder;
         this.familyService = familyService;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
+        this.memberService = memberService;
     }
 
     public void createNewUser(UserCreateRequest userCreateRequest) {
@@ -74,6 +77,42 @@ public class AuthService {
         loginResponse.setAccessTokenTTL(JWT_TOKEN_VALIDITY);
         loginResponse.setRefreshTokenTTL(REFRESH_TOKEN_VALIDITY);
         return loginResponse;
+    }
+
+    public void resetPassword(LoginRequest loginRequest) {
+        familyService.findFamilyHeadByUserName(loginRequest.emailId())
+                .ifPresentOrElse(member -> {
+                    member.setPassword(passwordEncoder.encode(loginRequest.password()));
+                    memberService.saveMember(member);
+                }, () -> {
+                    throw new RuntimeException("User not found");
+                });
+    }
+
+    private SearchRequest createSearchRequest(String emailId) {
+        FilterCriteria filterCriteria = createFilterCriteria(emailId);
+        return buildSearchRequest(filterCriteria);
+    }
+
+    private FilterCriteria createFilterCriteria(String emailId) {
+        FieldFilter fieldFilter = new FieldFilter();
+        fieldFilter.setFieldName("emailId");
+        fieldFilter.setOperation(Operation.EQUALS);
+        fieldFilter.setValues(List.of(emailId));
+
+        FilterCriteria filterCriteria = new FilterCriteria();
+        filterCriteria.setEvaluationType(EvaluationType.AND);
+        filterCriteria.setFilters(List.of(fieldFilter));
+
+        return filterCriteria;
+    }
+
+    private SearchRequest buildSearchRequest(FilterCriteria filterCriteria) {
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setPageSize(DEFAULT_PAGE_SIZE);
+        searchRequest.setOffset(DEFAULT_OFFSET);
+        searchRequest.setNode(filterCriteria);
+        return searchRequest;
     }
 
 
