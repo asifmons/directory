@@ -10,6 +10,7 @@ import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.*;
 import com.stjude.directory.repository.FamilyRepository;
 import com.stjude.directory.utils.StringOps;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -308,6 +309,7 @@ public class FamilyService {
 
     public List<MemberResponseDTO> searchFamilies(SearchRequest searchRequest) {
         Query query = buildSearchQuery(searchRequest);
+        query.with(Sort.by(Sort.Direction.ASC, "name")); // Sort by the "name" field in ascending order
         List<Member> members = mongoTemplate.find(query, Member.class);
         return mapToResponseDTOs(members);
     }
