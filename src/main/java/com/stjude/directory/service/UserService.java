@@ -22,7 +22,7 @@ public class UserService {
     private FamilyService familyService;
     public ResponseEntity<UserMetadata> getUserMetaData(String userEmail) {
         List<MemberResponseDTO> members = familyService.searchFamilies(createSearchRequest(userEmail));
-        MemberResponseDTO member = members.getFirst();
+        MemberResponseDTO member = members.get(0);
         return mapDataToMetaData(member);
     }
 

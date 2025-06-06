@@ -135,6 +135,87 @@ public class FamilyService {
     }
 
     /**
+     * Updates an existing family member's information using CreateMemberRequest.
+     * This method is used by the controller endpoint for individual member updates.
+     *
+     * @param familyId      the ID of the family to which the member belongs
+     * @param memberId      the ID of the member to update
+     * @param memberRequest the request data for updating the family member
+     * @throws RuntimeException if the family or member is not found
+     */
+    public void updateFamilyMember(String familyId, String memberId, CreateMemberRequest memberRequest) {
+        // Get member using the query method
+        Member existingMember = memberService.getMemberByFamilyIdAndMemberId(familyId, memberId);
+
+        // Update only non-null fields from memberRequest
+        if (memberRequest.getName() != null) {
+            existingMember.setName(memberRequest.getName());
+        }
+        if (memberRequest.getDob() != null) {
+            existingMember.setDob(memberRequest.getDob());
+        }
+        if (memberRequest.getPhoneNumber() != null) {
+            existingMember.setPhoneNumber(memberRequest.getPhoneNumber());
+        }
+        if (memberRequest.getBloodGroup() != null) {
+            existingMember.setBloodGroup(memberRequest.getBloodGroup());
+        }
+        if (memberRequest.getIsFamilyHead() != null) {
+            existingMember.setIsFamilyHead(memberRequest.getIsFamilyHead());
+        }
+        if (memberRequest.getEmailId() != null) {
+            existingMember.setEmailId(memberRequest.getEmailId());
+        }
+        if (memberRequest.getCoupleNo() != null) {
+            existingMember.setCoupleNo(memberRequest.getCoupleNo());
+        }
+        if (memberRequest.getRoles() != null) {
+            existingMember.setRoles(memberRequest.getRoles());
+        }
+
+        memberService.saveMember(existingMember);
+    }
+
+    /**
+     * Updates an existing family member's information using UpdateMemberRequest.
+     * This method is used internally by updateFamily method.
+     *
+     * @param familyId      the ID of the family to which the member belongs
+     * @param memberId      the ID of the member to update
+     * @param memberRequest the request data for updating the family member
+     * @throws RuntimeException if the family or member is not found
+     */
+    public void updateFamilyMemberWithUpdateRequest(String familyId, String memberId, UpdateMemberRequest memberRequest) {
+        // Get member using the query method
+        Member existingMember = memberService.getMemberByFamilyIdAndMemberId(familyId, memberId);
+
+        // Update only non-null fields from memberRequest
+        if (memberRequest.getName() != null) {
+            existingMember.setName(memberRequest.getName());
+        }
+        if (memberRequest.getDob() != null) {
+            existingMember.setDob(memberRequest.getDob());
+        }
+        if (memberRequest.getPhoneNumber() != null) {
+            existingMember.setPhoneNumber(memberRequest.getPhoneNumber());
+        }
+        if (memberRequest.getBloodGroup() != null) {
+            existingMember.setBloodGroup(memberRequest.getBloodGroup());
+        }
+        if (memberRequest.getIsFamilyHead() != null) {
+            existingMember.setIsFamilyHead(memberRequest.getIsFamilyHead());
+        }
+        if (memberRequest.getEmailId() != null) {
+            existingMember.setEmailId(memberRequest.getEmailId());
+        }
+        if (memberRequest.getCoupleNo() != null) {
+            existingMember.setCoupleNo(memberRequest.getCoupleNo());
+        }
+
+        memberService.saveMember(existingMember);
+    }
+
+    /**
      * Updates an existing family's information.
      *
      * @param id            the ID of the family to update
@@ -144,26 +225,38 @@ public class FamilyService {
      */
     @Transactional
     public FamilyResponseDTO updateFamily(String id, UpdateFamilyRequest familyRequest) throws Exception {
-        if (!familyRepository.existsById(id)) {
-            throw new RuntimeException("Family not found");
-        }
-        Family updatedFamily = new Family(id, familyRequest);
+        // Get existing family
+        Family existingFamily = familyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Family not found"));
 
-//        // Handle photo upload
-//        if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
-//            String fileName = s3Service.uploadImage(familyRequest.getPhoto());
-//            String photoUrl = s3Service.generatePublicUrl(fileName);
-//            updatedFamily.setPhotoUrl(photoUrl);
-//        }
-        familyRepository.save(updatedFamily);
+        // Update family fields only if not null
+        if (familyRequest.getAddress() != null) {
+            existingFamily.setAddress(familyRequest.getAddress());
+        }
+        if (familyRequest.getUnit() != null) {
+            existingFamily.setUnit(familyRequest.getUnit());
+        }
+        if (familyRequest.getAnniversaryDates() != null) {
+            existingFamily.setAnniversaryDates(familyRequest.getAnniversaryDates());
+        }
+        if (familyRequest.getHouseName() != null) {
+            existingFamily.setHouseName(familyRequest.getHouseName());
+        }
+
+        // Save updated family
+        Family updatedFamily = familyRepository.save(existingFamily);
 
         List<Member> members = new ArrayList<>();
         // Update family members if provided
         if (familyRequest.getFamilyMembers() != null && !familyRequest.getFamilyMembers().isEmpty()) {
-            members = familyRequest.getFamilyMembers()
-                    .stream()
-                    .map(dto -> new Member(dto, id, familyRequest.getAddress(), familyRequest.getUnit())).toList();
-            memberService.saveAllMembers(members);
+            for (UpdateMemberRequest memberRequest : familyRequest.getFamilyMembers()) {
+                // Use the new update method for UpdateMemberRequest
+                updateFamilyMemberWithUpdateRequest(id, memberRequest.getId(), memberRequest);
+            }
+            members = memberService.getMembersByFamilyId(id);
+        } else {
+            // If no members provided in request, get existing members
+            members = memberService.getMembersByFamilyId(id);
         }
 
         return new FamilyResponseDTO(updatedFamily, members);
@@ -187,29 +280,6 @@ public class FamilyService {
 
         // Delete the family from MongoDB
         familyRepository.deleteById(id);
-    }
-
-
-    /**
-     * Updates an existing family member's information.
-     *
-     * @param familyId      the ID of the family to which the member belongs
-     * @param memberId      the ID of the member to update
-     * @param memberRequest the request data for updating the family member
-     * @return the updated FamilyResponseDTO containing the family's details
-     * @throws RuntimeException if the family or member is not found
-     */
-    public void updateFamilyMember(String familyId, String memberId, CreateMemberRequest memberRequest) {
-
-        Family family = familyRepository.findById(familyId).orElseThrow(() -> new RuntimeException("Family not found"));
-
-        memberService.getMembersByFamilyId(familyId).stream()
-                .filter(mem -> mem.getId().equals(memberId))
-                .findFirst().orElseThrow(() -> new RuntimeException("Family member not found"));
-
-        Member updatedMember = new Member(memberId, memberRequest, familyId, family.getAddress(), family.getUnit());
-
-        memberService.saveMember(updatedMember);
     }
 
     /**
@@ -373,9 +443,9 @@ public class FamilyService {
             return "Photo is null or empty.";
         }
 
-        if (file.getSize() > 102400) {
-            return "Photo size should be less than 100 KB.";
-        }
+//        if (file.getSize() > 102400) {
+//            return "Photo size should be less than 100 KB.";
+//        }
 
         String fileName = s3Service.uploadImage(file);
         String photoUrl = s3Service.generatePublicUrl(fileName);
@@ -427,7 +497,7 @@ public class FamilyService {
             try {
                 MemberRowCSVTemplate memberRow = mapToFamilyEntities(row);
                 if (!grouped.get(currentFamilyId).isEmpty()) {
-                    memberRow.setAddress(grouped.get(currentFamilyId).getFirst().getAddress());
+                    memberRow.setAddress(grouped.get(currentFamilyId).get(0).getAddress());
                 }
                 grouped.get(currentFamilyId).add(memberRow);
             } catch (ParseException e) {
@@ -516,7 +586,7 @@ public class FamilyService {
         familyGroup.entrySet().forEach(
 
                 entry -> {
-                    Family family = new Family(entry.getValue().getFirst());
+                    Family family = new Family(entry.getValue().get(0));
                     Map<Short, Date> anniversaryDates = groupAnniversaryDates(entry.getValue());
                     family.setAnniversaryDates(anniversaryDates);
 

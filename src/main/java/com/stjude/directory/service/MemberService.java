@@ -36,4 +36,21 @@ public class MemberService {
         Optional<Member> member = memberRepository.findById(memberId);
         return member.orElse(null);
     }
+
+    /**
+     * Retrieves a member by their ID and family ID.
+     *
+     * @param familyId the ID of the family
+     * @param memberId the ID of the member
+     * @return the member if found
+     * @throws RuntimeException if the member is not found
+     */
+    public Member getMemberByFamilyIdAndMemberId(String familyId, String memberId) {
+        return memberRepository.findMemberByFamilyIdAndMemberId(memberId, familyId)
+                .orElseThrow(() -> new RuntimeException("Family member not found"));
+    }
+
+    public List<Member> getMembersByIds(List<String> memberIds) {
+        return memberRepository.findAllById(memberIds);
+    }
 }
