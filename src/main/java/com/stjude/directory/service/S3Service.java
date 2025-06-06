@@ -11,6 +11,8 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class S3Service {
@@ -29,6 +31,24 @@ public class S3Service {
     public String uploadImage(MultipartFile file) throws IOException {
         // Generate a unique file name for the image
         String fileName = "family-photos/"+StringOps.generateUUID() + "_" + file.getOriginalFilename();
+
+        // Create PutObjectRequest
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .contentType(file.getContentType()) // Important to set content type
+                .build();
+
+        // Upload the image to S3
+        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
+
+        // Return the file name
+        return fileName;
+    }
+
+    // Upload image to a custom S3 key (used for per-year uploads)
+    public String uploadImageWithCustomKey(MultipartFile file) throws IOException {
+        String fileName = "church-photos/" + "_" + file.getOriginalFilename();
 
         // Create PutObjectRequest
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -80,6 +100,45 @@ public class S3Service {
                         .key(key)
                         .build()
         );
+    }
+
+    // List up to 'limit' image keys for a given year
+    public List<String> listImageKeysByYear(int year, int limit) {
+        String prefix = "family-photos/" + year + "/";
+        ListObjectsV2Request listReq = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .prefix(prefix)
+                .maxKeys(limit)
+                .build();
+
+        ListObjectsV2Response listRes = s3Client.listObjectsV2(listReq);
+        List<String> keys = new ArrayList<>();
+        for (S3Object obj : listRes.contents()) {
+            keys.add(obj.key());
+        }
+        return keys;
+    }
+
+    // List all image keys for a given year (for pagination)
+    public List<String> listAllImageKeysByYear(int year) {
+        String prefix = "family-photos/" + year + "/";
+        List<String> keys = new ArrayList<>();
+        String continuationToken = null;
+        do {
+            ListObjectsV2Request.Builder reqBuilder = ListObjectsV2Request.builder()
+                    .bucket(bucketName)
+                    .prefix(prefix)
+                    .maxKeys(1000);
+            if (continuationToken != null) {
+                reqBuilder.continuationToken(continuationToken);
+            }
+            ListObjectsV2Response res = s3Client.listObjectsV2(reqBuilder.build());
+            for (S3Object obj : res.contents()) {
+                keys.add(obj.key());
+            }
+            continuationToken = res.nextContinuationToken();
+        } while (continuationToken != null);
+        return keys;
     }
 
 }

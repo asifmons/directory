@@ -29,7 +29,7 @@ public class CriteriaHelper {
 
     private static Criteria buildFieldCriteria(FieldFilter fieldFilter) {
         Criteria criteria = Criteria.where(fieldFilter.getFieldName());
-        Object value = fieldFilter.getValues().getFirst();
+        Object value = fieldFilter.getValues().get(0);
 
         return switch (fieldFilter.getOperation()) {
             case STARTS_WITH -> criteria.regex("^" + value, "i");
