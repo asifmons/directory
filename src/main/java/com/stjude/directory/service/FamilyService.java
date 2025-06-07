@@ -344,7 +344,11 @@ public class FamilyService {
      * @return the extracted key
      */
     private String extractS3KeyFromUrl(String url) {
-        return url.substring(url.lastIndexOf("/") + 1);
+        int index = url.indexOf(".amazonaws.com/");
+        if (index == -1) {
+            throw new IllegalArgumentException("Not a valid S3 URL: " + url);
+        }
+        return url.substring(index + ".amazonaws.com/".length());
     }
 
 //    /**
