@@ -13,4 +13,5 @@ public class UserMetadata {
     private List<Role> roles;
     private Unit unit;
     private String emailId;
+    private String photoUrl;
 }

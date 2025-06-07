@@ -23,16 +23,18 @@ public class UserService {
     public ResponseEntity<UserMetadata> getUserMetaData(String userEmail) {
         List<MemberResponseDTO> members = familyService.searchFamilies(createSearchRequest(userEmail));
         MemberResponseDTO member = members.get(0);
-        return mapDataToMetaData(member);
+        String photoUrl = familyService.getFamilyById(member.getFamilyId()).getPhotoUrl();
+        return mapDataToMetaData(member, photoUrl);
     }
 
-    private ResponseEntity<UserMetadata> mapDataToMetaData(MemberResponseDTO member) {
+    private ResponseEntity<UserMetadata> mapDataToMetaData(MemberResponseDTO member, String photoUrl) {
         UserMetadata userMetadata = new UserMetadata();
         userMetadata.setUserId(member.getId());
         userMetadata.setUnit(member.getUnit());
         userMetadata.setFamilyId(member.getFamilyId());
         userMetadata.setRoles(member.getRoles());
         userMetadata.setEmailId(member.getEmailId());
+        userMetadata.setPhotoUrl(photoUrl);
         return ResponseEntity.ok(userMetadata);
     }
 
