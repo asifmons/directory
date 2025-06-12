@@ -11,5 +11,5 @@ import java.util.Optional;
 @Repository
 public interface HighlightMetaRepository extends MongoRepository<HighlightMeta, String> {
     Optional<HighlightMeta> findByHighlightId(String highlightId);
-    Page<HighlightMeta> findAllByOrderByCreatedDateDesc(Pageable pageable);
+    Page<HighlightMeta> findAllByOrderByCreatedDateAsc(Pageable pageable);
 }

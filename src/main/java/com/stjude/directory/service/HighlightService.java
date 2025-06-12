@@ -62,7 +62,7 @@ public class HighlightService {
     @Transactional(readOnly = true)
     public PagedResponse<HighlightPreviewResponse> getHighlightPreviews(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<HighlightMeta> metaPage = metaRepository.findAllByOrderByCreatedDateDesc(pageable);
+        Page<HighlightMeta> metaPage = metaRepository.findAllByOrderByCreatedDateAsc(pageable);
 
         Page<HighlightPreviewResponse> responsePage = metaPage.map(meta ->
                 new HighlightPreviewResponse(
@@ -97,9 +97,6 @@ public class HighlightService {
         }
         if (images == null || images.isEmpty()) {
             throw new IllegalArgumentException("At least one image is required");
-        }
-        if (images.size() > 50) {
-            throw new IllegalArgumentException("Maximum 50 images allowed per highlight");
         }
     }
 
