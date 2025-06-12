@@ -46,6 +46,24 @@ public class S3Service {
         return fileName;
     }
 
+    public String uploadHighLightImage(MultipartFile file) throws IOException {
+        // Generate a unique file name for the image
+        String fileName = "highlights/"+ file.getOriginalFilename();
+
+        // Create PutObjectRequest
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .contentType(file.getContentType()) // Important to set content type
+                .build();
+
+        // Upload the image to S3
+        s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
+
+        // Return the file name
+        return fileName;
+    }
+
     // Upload image to a custom S3 key (used for per-year uploads)
     public String uploadImageWithCustomKey(MultipartFile file) throws IOException {
         String fileName = "church-photos/" + "_" + file.getOriginalFilename();
