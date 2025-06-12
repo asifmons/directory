@@ -29,7 +29,7 @@ public class AtlasSearchHelper {
                 .toList();
 
         if (criteriaList.isEmpty()) {
-            return new Document("matchAll", new Document());
+            return new Document("exists", new Document("path", "_id"));
         }
 
 
