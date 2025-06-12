@@ -1,6 +1,7 @@
 package com.stjude.directory.controller;
 
 import com.stjude.directory.dto.*;
+import com.stjude.directory.model.Family;
 import com.stjude.directory.model.SearchRequest;
 import com.stjude.directory.service.FamilyService;
 import jakarta.validation.Valid;
@@ -186,6 +187,60 @@ public class FamilyController {
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error processing CSV file: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/upload-bulk-photos")
+    public ResponseEntity<String> uploadFiles(
+            @RequestParam("files") MultipartFile[] files) {
+
+        int successCount = 0;
+        int failedCount = 0;
+        try {
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
+                    // Extract filename without extension
+                    String filename = file.getOriginalFilename();
+                    String athamsthithiNumber = getFilenameWithoutExtension(filename);
+
+                    // Query database using the filename
+                    try {
+                        Family family = familyService.findByAthmasthithiNo(athamsthithiNumber);
+
+                        uploadPhoto(family.getId(), file);
+                        successCount++;
+                    } catch (Exception e) {
+                        // Handle case where family is not found or upload fails
+                        System.out.println("Failed to upload file for athamsthithi number: " + athamsthithiNumber);
+                        failedCount++;
+
+                    }
+
+                }
+            }
+
+
+
+            return ResponseEntity.ok("Uploaded " + successCount + " files successfully, " +
+                    failedCount + " files failed to upload.");
+
+        } catch (Exception e) {
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing files: " + e.getMessage());
+        }
+    }
+
+    private String getFilenameWithoutExtension(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return "";
+        }
+
+        int lastDotIndex = filename.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            return filename.substring(0, lastDotIndex).replace("_", "/");
+        }
+
+        return filename; // No extension found
     }
 
 }

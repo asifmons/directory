@@ -20,7 +20,7 @@ public class S3Service {
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
 
-    private static final String bucketName = "stjude-family-members-photos"; // Replace with your actual bucket name//todo - move this to properties file
+    private static final String bucketName = "st-jude-photos"; // Replace with your actual bucket name//todo - move this to properties file
 
 
     public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
@@ -30,7 +30,7 @@ public class S3Service {
 
     public String uploadImage(MultipartFile file) throws IOException {
         // Generate a unique file name for the image
-        String fileName = "family-photos/"+StringOps.generateUUID() + "_" + file.getOriginalFilename();
+        String fileName = "family-photos/"+ file.getOriginalFilename();
 
         // Create PutObjectRequest
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()

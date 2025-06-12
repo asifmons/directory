@@ -1,7 +1,5 @@
 package com.stjude.directory.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.CSVReader;
 import com.stjude.directory.CriteriaHelper;
 import com.stjude.directory.dto.*;
@@ -9,9 +7,13 @@ import com.stjude.directory.enums.*;
 import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.*;
 import com.stjude.directory.repository.FamilyRepository;
-import com.stjude.directory.utils.StringOps;
+import com.stjude.directory.utils.AtlasSearchHelper;
+import org.bson.Document;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +30,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Service class for managing family entities and their members.
@@ -382,9 +383,7 @@ public class FamilyService {
     }*/
 
     public List<MemberResponseDTO> searchFamilies(SearchRequest searchRequest) {
-        Query query = buildSearchQuery(searchRequest);
-        query.with(Sort.by(Sort.Direction.ASC, "name")); // Sort by the "name" field in ascending order
-        List<Member> members = mongoTemplate.find(query, Member.class);
+        List<Member> members =  searchMembersUsingAtlasSearch(searchRequest);
         return mapToResponseDTOs(members);
     }
 
@@ -431,6 +430,34 @@ public class FamilyService {
                 .addCriteria(searchCriteria)
                 .limit(searchRequest.getPageSize())
                 .skip((long) (searchRequest.getOffset() - 1) * searchRequest.getPageSize());
+    }
+
+    private List<Member> searchMembersUsingAtlasSearch(SearchRequest searchRequest) {
+        Document searchQuery = AtlasSearchHelper.createSearchQuery(searchRequest.getNode());
+
+        // Build aggregation pipeline manually
+        List<AggregationOperation> operations = new ArrayList<>();
+
+        // Add search stage
+        operations.add(context -> searchQuery);
+        operations.add(Aggregation.sort(Sort.by(Sort.Direction.ASC, "name"))); // Sort by name or any other field
+
+        // Add skip stage if specified
+
+        operations.add(Aggregation.skip((long) (searchRequest.getOffset() - 1) * searchRequest.getPageSize()));
+
+
+        // Add limit stage if specified
+
+        operations.add(Aggregation.limit(searchRequest.getPageSize()));
+        Aggregation aggregation = Aggregation.newAggregation(operations);
+        AggregationResults<Member> results = mongoTemplate.aggregate(
+                aggregation,
+                "MEMBER", // Collection name
+                Member.class
+        );
+
+        return results.getMappedResults();
     }
 
     private List<MemberResponseDTO> mapToResponseDTOs(List<Member> members) {
@@ -634,4 +661,11 @@ public class FamilyService {
         return result;
     }
 
+    public Family findByAthmasthithiNo(String athamsthithiNumber) {
+    if (athamsthithiNumber == null || athamsthithiNumber.isEmpty()) {
+        throw new IllegalArgumentException("Athmasthithi number cannot be null or empty.");
+    }
+        return familyRepository.findByAathmaSthithiNumber(athamsthithiNumber)
+                .orElseThrow(() -> new RuntimeException("Family not found with Athmasthithi number: " + athamsthithiNumber));
+    }
 }
