@@ -72,4 +72,21 @@ public class HighlightController {
                     .body(ApiResponse.error("Failed to fetch highlight images"));
         }
     }
+
+    @PostMapping("/{highlightId}/images")
+    public ResponseEntity<ApiResponse<String>> addImagesToHighlight(
+            @PathVariable String highlightId,
+            @RequestParam("images") List<MultipartFile> images) {
+
+        try {
+            highlightService.addImagesToHighlight(highlightId, images);
+            return ResponseEntity.ok(ApiResponse.success("Images added to highlight successfully", null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to add images to highlight"));
+        }
+    }
 }

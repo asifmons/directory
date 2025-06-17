@@ -91,9 +91,37 @@ public class HighlightService {
         return new PagedResponse<>(urlPage);
     }
 
+    public void addImagesToHighlight(String highlightId, List<MultipartFile> images) throws Exception {
+        validateAddImagesRequest(highlightId, images);
+
+        try {
+            // Upload and save images
+            saveImages(highlightId, images);
+
+            // Update metadata with new image counts and preview URLs
+            updateMetadataWithImageInfo(highlightId);
+
+        } catch (Exception e) {
+            // TODO: Implement rollback logic for S3 cleanup
+            throw new Exception("Failed to add images to highlight: " + e.getMessage(), e);
+        }
+    }
+
     private void validateCreateRequest(String name, List<MultipartFile> images) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Highlight name is required");
+        }
+        if (images == null || images.isEmpty()) {
+            throw new IllegalArgumentException("At least one image is required");
+        }
+    }
+
+    private void validateAddImagesRequest(String highlightId, List<MultipartFile> images) {
+        if (highlightId == null || highlightId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Highlight ID is required");
+        }
+        if (!highlightExists(highlightId)) {
+            throw new IllegalArgumentException("Highlight not found: " + highlightId);
         }
         if (images == null || images.isEmpty()) {
             throw new IllegalArgumentException("At least one image is required");
