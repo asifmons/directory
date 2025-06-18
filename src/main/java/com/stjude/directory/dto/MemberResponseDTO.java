@@ -2,6 +2,7 @@ package com.stjude.directory.dto;
 
 import com.stjude.directory.enums.BloodGroup;
 import com.stjude.directory.enums.Role;
+import com.stjude.directory.enums.Status;
 import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.Member;
 import lombok.Data;
@@ -24,6 +25,7 @@ public class MemberResponseDTO {
     private String emailId;
     private Unit unit;
     private List<Role> roles;
+    private Status status;
 
     public MemberResponseDTO(Member member) {
         this.setId(member.getId());
@@ -37,5 +39,6 @@ public class MemberResponseDTO {
         this.setEmailId(member.getEmailId());
         this.setUnit(member.getUnit());
         this.setRoles(member.getRoles());
+        this.setStatus(member.getStatus() != null ? member.getStatus() : Status.ACTIVE);
     }
 }
