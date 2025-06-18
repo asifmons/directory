@@ -148,10 +148,13 @@ public class HighlightService {
                 .map(HighlightImage::getS3Url)
                 .toList();
 
+        // Get the actual total count of all images for this highlight
+        long totalImageCount = imageRepository.countByHighlightId(highlightId);
+
         HighlightMeta meta = metaRepository.findByHighlightId(highlightId)
                 .orElseThrow(() -> new IllegalStateException("Metadata not found for highlight: " + highlightId));
 
-        meta.updateImageCounts(previewImages.size(), previewUrls);
+        meta.updateImageCounts((int) totalImageCount, previewUrls);
         metaRepository.save(meta);
     }
 
