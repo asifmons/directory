@@ -36,9 +36,80 @@ public class VicarService {
         return vicarRepository.save(vicar);
     }
 
-    // Get all vicars ordered by start date
+    // Get all vicars ordered by start date and end date in descending order
+    // Present vicar (without end date) will be first, followed by others in descending order
     public List<Vicar> getAllVicars() {
-        return vicarRepository.findAllByOrderByStartDateAsc();
+        List<Vicar> allVicars = vicarRepository.findAll();
+        
+        // Sort vicars with custom logic:
+        // 1. Present vicar (isPresent = true) comes first
+        // 2. Others sorted by end date descending (most recent service period first)
+        // 3. If end dates are same or null, then by start date descending
+        allVicars.sort((v1, v2) -> {
+            // If one is present and other is not, present comes first
+            if (v1.isPresent() && !v2.isPresent()) {
+                return -1;
+            }
+            if (!v1.isPresent() && v2.isPresent()) {
+                return 1;
+            }
+            
+            // For non-present vicars, sort by end date first (descending)
+            if (!v1.isPresent() && !v2.isPresent()) {
+                // Handle null end dates (present vicars should have been handled above)
+                if (v1.getEndDate() == null && v2.getEndDate() == null) {
+                    // If both end dates are null, sort by start date descending
+                    if (v1.getStartDate() == null && v2.getStartDate() == null) {
+                        return 0;
+                    }
+                    if (v1.getStartDate() == null) {
+                        return 1;
+                    }
+                    if (v2.getStartDate() == null) {
+                        return -1;
+                    }
+                    return v2.getStartDate().compareTo(v1.getStartDate());
+                }
+                if (v1.getEndDate() == null) {
+                    return 1; // v1 goes after v2
+                }
+                if (v2.getEndDate() == null) {
+                    return -1; // v1 goes before v2
+                }
+                
+                // Both have end dates, compare them (descending)
+                int endDateComparison = v2.getEndDate().compareTo(v1.getEndDate());
+                if (endDateComparison != 0) {
+                    return endDateComparison;
+                }
+                
+                // If end dates are same, sort by start date descending
+                if (v1.getStartDate() == null && v2.getStartDate() == null) {
+                    return 0;
+                }
+                if (v1.getStartDate() == null) {
+                    return 1;
+                }
+                if (v2.getStartDate() == null) {
+                    return -1;
+                }
+                return v2.getStartDate().compareTo(v1.getStartDate());
+            }
+            
+            // If both are present (edge case), sort by start date descending
+            if (v1.getStartDate() == null && v2.getStartDate() == null) {
+                return 0;
+            }
+            if (v1.getStartDate() == null) {
+                return 1;
+            }
+            if (v2.getStartDate() == null) {
+                return -1;
+            }
+            return v2.getStartDate().compareTo(v1.getStartDate());
+        });
+        
+        return allVicars;
     }
 
     // Get current vicar
