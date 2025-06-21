@@ -567,29 +567,85 @@ public class FamilyService {
 
     // Step 3: Map each row to a Family entity
     private MemberRowCSVTemplate mapToFamilyEntities(String[] row) throws ParseException {
-        MemberRowCSVTemplate member = new MemberRowCSVTemplate();
-        try {
-            member = MemberRowCSVTemplate.builder()
-                    .familyId(row[0])
-                    .address(row[1])
-                    .houseName(row[2])
-                    .memberName(row[3])
-                    .relation(row[4])
-                    .dob(row[5] == null || row[5].isEmpty() ? null : new SimpleDateFormat("dd.MM.yyyy").parse(row[5].trim()))
-                    .phoneNumber(row[6])
-                    .bloodGroup(BloodGroup.getNameForDisplayValue(row[7]))
-                    .isFamilyHead(Boolean.parseBoolean(row[8]))
-                    .emailId(row[9])
-                    .unit(Unit.getByDisplayValue(row[10]))
-                    .anniversaryDate((row[11] == null || row[11].isEmpty()) || "NA".equals(row[11]) ? null : new SimpleDateFormat("dd.MM.yyyy").parse(row[11].trim()))
-                    .password(Boolean.parseBoolean(row[8]) ? passwordEncoder.encode("test123") : null)
-                    .salutation(row[12])
-                    .status(row[13] == null || row[13].isEmpty() ? Status.ACTIVE : Status.getByDisplayValue(row[13]))
-                    .expiryDate((row[14] == null || row[14].isEmpty()) ? null : new SimpleDateFormat("dd.MM.yyyy").parse(row[14].trim()))
-                    .build();
-        } catch (Exception exception) {
-            System.out.println("Error parsing row: " + Arrays.toString(row));
+        MemberRowCSVTemplate.MemberRowCSVTemplateBuilder builder = MemberRowCSVTemplate.builder();
+        
+        // Set basic fields that don't require parsing
+        builder.familyId(row[0])
+               .address(row[1])
+               .houseName(row[2])
+               .memberName(row[3])
+               .relation(row[4])
+               .phoneNumber(row[6])
+               .isFamilyHead(Boolean.parseBoolean(row[8]))
+               .emailId(row[9])
+               .salutation(row[12])
+               .password(Boolean.parseBoolean(row[8]) ? passwordEncoder.encode("test123") : null);
+        
+        // Parse date of birth with error handling
+        if (row[5] != null && !row[5].isEmpty()) {
+            try {
+                builder.dob(new SimpleDateFormat("dd.MM.yyyy").parse(row[5].trim()));
+            } catch (ParseException e) {
+                System.out.println("Error parsing DOB for row: " + Arrays.toString(row) + " - " + e.getMessage());
+                builder.dob(null);
+            }
+        } else {
+            builder.dob(null);
         }
+        
+        // Parse blood group with error handling
+        try {
+            builder.bloodGroup(BloodGroup.getNameForDisplayValue(row[7]));
+        } catch (Exception e) {
+            System.out.println("Error parsing BloodGroup for row: " + Arrays.toString(row) + " - " + e.getMessage());
+            builder.bloodGroup(null);
+        }
+        
+        // Parse unit with error handling
+        try {
+            builder.unit(Unit.getByDisplayValue(row[10]));
+        } catch (Exception e) {
+            System.out.println("Error parsing Unit for row: " + Arrays.toString(row) + " - " + e.getMessage());
+            builder.unit(null);
+        }
+        
+        // Parse anniversary date with error handling
+        if (row[11] != null && !row[11].isEmpty() && !"NA".equals(row[11])) {
+            try {
+                builder.anniversaryDate(new SimpleDateFormat("dd.MM.yyyy").parse(row[11].trim()));
+            } catch (ParseException e) {
+                System.out.println("Error parsing Anniversary Date for row: " + Arrays.toString(row) + " - " + e.getMessage());
+                builder.anniversaryDate(null);
+            }
+        } else {
+            builder.anniversaryDate(null);
+        }
+        
+        // Parse status with error handling
+        try {
+            if (row[13] == null || row[13].isEmpty()) {
+                builder.status(Status.ACTIVE);
+            } else {
+                builder.status(Status.getByDisplayValue(row[13]));
+            }
+        } catch (Exception e) {
+            System.out.println("Error parsing Status for row: " + Arrays.toString(row) + " - " + e.getMessage());
+            builder.status(Status.ACTIVE);
+        }
+        
+        // Parse expiry date with error handling
+        if (row[14] != null && !row[14].isEmpty()) {
+            try {
+                builder.expiryDate(new SimpleDateFormat("dd.MM.yyyy").parse(row[14].trim()));
+            } catch (ParseException e) {
+                System.out.println("Error parsing Expiry Date for row: " + Arrays.toString(row) + " - " + e.getMessage());
+                builder.expiryDate(null);
+            }
+        } else {
+            builder.expiryDate(null);
+        }
+        
+        MemberRowCSVTemplate member = builder.build();
         LocalDate localDate = null;
 
         Instant utcInstant = null;
@@ -608,6 +664,13 @@ public class FamilyService {
              utcInstant = localDate.atStartOfDay(ZoneOffset.UTC).toInstant();
             member.setExpiryDate(Date.from(utcInstant));
         }
+        if (member.getAnniversaryDate() != null) {
+            localDate = member.getAnniversaryDate().toInstant()
+                   .atZone(ZoneId.systemDefault())
+                   .toLocalDate();
+            utcInstant = localDate.atStartOfDay(ZoneOffset.UTC).toInstant();
+           member.setAnniversaryDate(Date.from(utcInstant));
+       }
         return member;
     }
 
