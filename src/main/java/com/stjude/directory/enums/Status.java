@@ -2,7 +2,8 @@ package com.stjude.directory.enums;
 
 public enum Status {
     ACTIVE("Active"),
-    EXPIRED("Expired");
+    EXPIRED("Expired"),
+    SHIFTED("Shifted");
 
     private final String displayValue;
 
