@@ -440,16 +440,23 @@ public class FamilyService {
 
         // Add search stage
         operations.add(context -> searchQuery);
-        operations.add(Aggregation.sort(Sort.by(Sort.Direction.ASC, "name"))); // Sort by name or any other field
+        
+        // Add a stage to include the search score in the results
+        operations.add(context -> new Document("$addFields", 
+            new Document("searchScore", new Document("$meta", "searchScore"))));
+        
+        // Sort first by highest matching score (descending), then by name (ascending)
+        operations.add(Aggregation.sort(
+            Sort.by(Sort.Direction.DESC, "searchScore")
+                .and(Sort.by(Sort.Direction.ASC, "name"))
+        ));
 
         // Add skip stage if specified
-
         operations.add(Aggregation.skip((long) (searchRequest.getOffset() - 1) * searchRequest.getPageSize()));
 
-
         // Add limit stage if specified
-
         operations.add(Aggregation.limit(searchRequest.getPageSize()));
+        
         Aggregation aggregation = Aggregation.newAggregation(operations);
         AggregationResults<Member> results = mongoTemplate.aggregate(
                 aggregation,
