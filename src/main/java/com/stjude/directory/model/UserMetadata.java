@@ -14,4 +14,5 @@ public class UserMetadata {
     private Unit unit;
     private String emailId;
     private String photoUrl;
+    private String familyHeadName;
 }
