@@ -35,6 +35,7 @@ public class UserService {
         userMetadata.setRoles(member.getRoles());
         userMetadata.setEmailId(member.getEmailId());
         userMetadata.setPhotoUrl(photoUrl);
+        userMetadata.setFamilyHeadName(member.getName());
         return ResponseEntity.ok(userMetadata);
     }
 
