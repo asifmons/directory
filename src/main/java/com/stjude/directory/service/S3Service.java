@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class S3Service {
@@ -48,7 +49,7 @@ public class S3Service {
 
     public String uploadHighLightImage(MultipartFile file) throws IOException {
         // Generate a unique file name for the image
-        String fileName = "highlights/"+ file.getOriginalFilename();
+        String fileName = "highlights/"+ UUID.randomUUID() + "_" + file.getOriginalFilename();
 
         // Create PutObjectRequest
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()

@@ -2,6 +2,7 @@ package com.stjude.directory.service;
 
 import com.stjude.directory.dto.FeedbackRequest;
 import com.stjude.directory.enums.FeedbackReason;
+import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.Feedback;
 import com.stjude.directory.model.Member;
 import com.stjude.directory.repository.FeedbackRepository;
@@ -33,10 +34,12 @@ public class FeedbackService {
         
         // Fetch member name if member ID is provided
         String memberName = null;
+        Unit unit = null; // Assuming Unit is another class in your model
         if (request.getFamilyMemberId() != null && !request.getFamilyMemberId().isEmpty()) {
             Optional<Member> member = memberRepository.findById(request.getFamilyMemberId());
             if (member.isPresent()) {
                 memberName = member.get().getName();
+                unit = member.get().getUnit(); // Assuming Member has a getUnit() method
             }
         }
         
@@ -46,7 +49,8 @@ public class FeedbackService {
             memberName,
             reason,
             request.getSubject(),
-            request.getDescription()
+            request.getDescription(),
+                unit
         );
         
         return feedbackRepository.save(feedback);

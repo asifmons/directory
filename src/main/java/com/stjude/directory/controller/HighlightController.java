@@ -89,4 +89,18 @@ public class HighlightController {
                     .body(ApiResponse.error("Failed to add images to highlight"));
         }
     }
+
+    @DeleteMapping("/{highlightId}")
+    public ResponseEntity<ApiResponse<String>> deleteHighlight(@PathVariable String highlightId) {
+        try {
+            highlightService.deleteHighlight(highlightId);
+            return ResponseEntity.ok(ApiResponse.success("Highlight deleted successfully", null));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.error("Failed to delete highlight"));
+        }
+    }
 }
