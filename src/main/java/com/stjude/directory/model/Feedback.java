@@ -1,6 +1,7 @@
 package com.stjude.directory.model;
 
 import com.stjude.directory.enums.FeedbackReason;
+import com.stjude.directory.enums.Unit;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -19,6 +20,8 @@ public class Feedback {
     private String description;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String familyHeadNumber;
+    private Unit unit;// Assuming Unit is another class in your model
 
     // Default constructor
     public Feedback() {
@@ -27,7 +30,7 @@ public class Feedback {
     }
 
     // Constructor with parameters
-    public Feedback(String familyId, String familyMemberId, String familyMemberName, FeedbackReason reason, String subject, String description) {
+    public Feedback(String familyId, String familyMemberId, String familyMemberName, FeedbackReason reason, String subject, String description, Unit unit) {
         this();
         this.familyId = familyId;
         this.familyMemberId = familyMemberId;
@@ -35,6 +38,7 @@ public class Feedback {
         this.reason = reason;
         this.subject = subject;
         this.description = description;
+        this.unit = unit;
     }
 
     // Getters and Setters

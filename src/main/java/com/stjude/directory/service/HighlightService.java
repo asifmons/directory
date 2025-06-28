@@ -158,6 +158,64 @@ public class HighlightService {
         metaRepository.save(meta);
     }
 
+    public void deleteHighlight(String highlightId) throws Exception {
+        if (highlightId == null || highlightId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Highlight ID is required");
+        }
+        
+        if (!highlightExists(highlightId)) {
+            throw new IllegalArgumentException("Highlight not found: " + highlightId);
+        }
+
+        try {
+            // Get all images for this highlight
+            List<HighlightImage> images = imageRepository.findByHighlightId(highlightId);
+            
+            // Delete images from S3
+            for (HighlightImage image : images) {
+                String s3Key = extractS3KeyFromUrl(image.getS3Url());
+                if (s3Key != null) {
+                    s3Service.deleteFileFromS3(s3Key);
+                }
+            }
+            
+            // Delete all image records from database
+            imageRepository.deleteByHighlightId(highlightId);
+            
+            // Delete metadata record from database
+            metaRepository.deleteByHighlightId(highlightId);
+            
+        } catch (Exception e) {
+            throw new Exception("Failed to delete highlight: " + e.getMessage(), e);
+        }
+    }
+
+    private String extractS3KeyFromUrl(String s3Url) {
+        if (s3Url == null || s3Url.isEmpty()) {
+            return null;
+        }
+        
+        // Extract key from URL format: https://bucket-name.s3.amazonaws.com/key
+        // or https://s3.amazonaws.com/bucket-name/key
+        try {
+            if (s3Url.contains(".s3.amazonaws.com/")) {
+                return s3Url.substring(s3Url.indexOf(".s3.amazonaws.com/") + 18);
+            } else if (s3Url.contains("s3.amazonaws.com/")) {
+                String afterS3 = s3Url.substring(s3Url.indexOf("s3.amazonaws.com/") + 17);
+                // Skip bucket name and get the key
+                int firstSlash = afterS3.indexOf('/');
+                if (firstSlash > 0) {
+                    return afterS3.substring(firstSlash + 1);
+                }
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the deletion
+            System.err.println("Failed to extract S3 key from URL: " + s3Url + ", Error: " + e.getMessage());
+        }
+        
+        return null;
+    }
+
     private boolean highlightExists(String highlightId) {
         return metaRepository.findByHighlightId(highlightId).isPresent();
     }
