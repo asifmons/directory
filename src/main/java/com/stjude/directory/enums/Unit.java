@@ -30,7 +30,7 @@ public enum Unit {
                 return unit;
             }
         }
-        throw new IllegalArgumentException("No Unit with display value: " + displayValue);
+       return null;
     }
 
     @Override
