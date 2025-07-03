@@ -7,7 +7,8 @@ public enum FeedbackReason {
     USER_INTERFACE("User Interface"),
     PERFORMANCE("Performance"),
     CONTENT_ISSUE("Content Issue"),
-    OTHER("Other");
+    OTHER("Other"),
+    DATA_ISSUE("Data Issue");
 
     private final String displayName;
 
