@@ -42,6 +42,8 @@ public class Member {
     private Status status;
     private Date expiryDate;
     private String houseName;
+    private Date ordinationDate; // For parish priest only
+    private Date feastDate; // For parish priest only
 
     public Member(CreateMemberRequest request, String familyId, String address, Unit unit){
         this.id = StringOps.generateUUID();

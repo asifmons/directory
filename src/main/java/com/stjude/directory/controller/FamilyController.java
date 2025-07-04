@@ -37,7 +37,7 @@ public class FamilyController {
      */
     @PostMapping
     public ResponseEntity<FamilyResponseDTO> createFamily(
-            @Valid CreateFamilyRequest familyRequest
+            @Valid @RequestBody CreateFamilyRequest familyRequest
     ) throws Exception {
         FamilyResponseDTO createdFamily = familyService.createFamily(familyRequest);
         return new ResponseEntity<>(createdFamily, HttpStatus.CREATED);

@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 @Data
@@ -26,6 +27,8 @@ public class MemberResponseDTO {
     private Unit unit;
     private List<Role> roles;
     private Status status;
+    private String ordinationDate; // For parish priest only
+    private String feastDate;
 
     public MemberResponseDTO(Member member) {
         this.setId(member.getId());
@@ -40,5 +43,7 @@ public class MemberResponseDTO {
         this.setUnit(member.getUnit());
         this.setRoles(member.getRoles());
         this.setStatus(member.getStatus() != null ? member.getStatus() : Status.ACTIVE);
+        this.setOrdinationDate(member.getOrdinationDate() != null ? new SimpleDateFormat("dd-MM-yy").format( member.getOrdinationDate()) : null);
+        this.setFeastDate(member.getOrdinationDate() != null ? new SimpleDateFormat("dd-MM-yy").format(member.getFeastDate()) : null);
     }
 }
