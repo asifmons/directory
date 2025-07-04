@@ -28,6 +28,7 @@ public class Family {
     private Map<Short, Date> anniversaryDates;
     private String houseName;
     private String aathmaSthithiNumber;
+    private Boolean isSpiritual = false;
 
     public Family(CreateFamilyRequest request) {
         this.id = StringOps.generateUUID();

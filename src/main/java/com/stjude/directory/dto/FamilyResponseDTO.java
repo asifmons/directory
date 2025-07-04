@@ -21,6 +21,7 @@ public class FamilyResponseDTO {
     private List<Couple> couples;
     private String houseName;
     private Unit unit;
+    private Boolean isSpiritual;
 
     public FamilyResponseDTO(Family family, List<Member> members) {
         this.id = family.getId();
@@ -33,6 +34,7 @@ public class FamilyResponseDTO {
                 .toList();
         this.couples = getCouples(members, family.getAnniversaryDates());
         this.unit = family.getUnit();
+        this.isSpiritual = family.getIsSpiritual() != null ? family.getIsSpiritual() : false;
     }
 
     private List<Couple> getCouples(List<Member> members, Map<Short, Date> anniversaryDates) {

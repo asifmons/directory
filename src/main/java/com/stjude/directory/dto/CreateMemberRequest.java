@@ -17,24 +17,24 @@ public class CreateMemberRequest {
 
     @NotBlank(message = "Member name is required")
     @Size(max = 100, message = "Member name must be less than 100 characters")
-    private String name;
+    public String name;
 
     @NotBlank(message = "Date of Birth is required")
-    private Date dob;
+    public Date dob;
 
     @NotBlank(message = "Phone number is required")
     @Pattern(regexp = "^\\d{10,12}$", message = "Phone number must be between 10 and 12 digits")
-    private String phoneNumber;
+    public String phoneNumber;
 
     @NotBlank(message = "Email Id is required.")
     @Email(message = "Email Id is in invalid format.")
-    private String emailId;
+    public String emailId;
 
-    private BloodGroup bloodGroup;
+    public BloodGroup bloodGroup;
 
-    private Boolean isFamilyHead;
+    public Boolean isFamilyHead;
 
-    private Short coupleNo;
-    private String password;
-    private List<Role> roles;
+    public Short coupleNo;
+    public String password;
+    public List<Role> roles;
 }

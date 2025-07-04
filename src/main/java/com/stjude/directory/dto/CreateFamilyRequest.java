@@ -15,16 +15,16 @@ public class CreateFamilyRequest {
 
     @Nullable
     @Size(max = 200, message = "Address must be less than 200 characters")
-    private String address;
+    public String address;
 
-    private Unit unit;
+    public Unit unit;
 
-    private String houseName;
+    public String houseName;
 
     @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private Map<Short, Date> anniversaryDates;
+    public Map<Short, Date> anniversaryDates;
 
-    private List<CreateMemberRequest> familyMembers;
+    public List<CreateMemberRequest> familyMembers;
 
 }
 
