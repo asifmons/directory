@@ -29,6 +29,7 @@ public class MemberResponseDTO {
     private Status status;
     private String ordinationDate; // For parish priest only
     private String feastDate;
+    private String phoneNumberSecondary;
 
     public MemberResponseDTO(Member member) {
         this.setId(member.getId());
@@ -45,5 +46,6 @@ public class MemberResponseDTO {
         this.setStatus(member.getStatus() != null ? member.getStatus() : Status.ACTIVE);
         this.setOrdinationDate(member.getOrdinationDate() != null ? new SimpleDateFormat("dd-MM-yy").format( member.getOrdinationDate()) : null);
         this.setFeastDate(member.getOrdinationDate() != null ? new SimpleDateFormat("dd-MM-yy").format(member.getFeastDate()) : null);
+        this.setPhoneNumberSecondary(member.getPhoneNumberSecondary());
     }
 }
