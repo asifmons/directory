@@ -65,12 +65,6 @@ public class FamilyService {
     @Transactional
     public FamilyResponseDTO createFamily(CreateFamilyRequest familyRequest) throws Exception {
         Family family = new Family(familyRequest);
-//        // Handle photo upload
-//        if (familyRequest.getPhoto() != null && !familyRequest.getPhoto().isEmpty()) {
-//            String fileName = s3Service.uploadImage(familyRequest.getPhoto());
-//            String photoUrl = s3Service.generatePublicUrl(fileName);
-//            family.setPhotoUrl(photoUrl);
-//        }
 
         Family savedFamily = familyRepository.save(family);
         List<Member> members = saveMembersFromFamily(familyRequest, savedFamily.getId());
@@ -279,6 +273,13 @@ public class FamilyService {
             s3Service.deleteFileFromS3(key);
         }
 
+        // Delete all members associated with the family
+        List<Member> members = memberService.getMembersByFamilyId(id);
+        if (members != null && !members.isEmpty()) {
+            members.forEach(member -> memberService.deleteMember(member.getId()));
+        }
+
+
         // Delete the family from MongoDB
         familyRepository.deleteById(id);
     }
@@ -303,40 +304,6 @@ public class FamilyService {
         memberService.deleteMember(memberId);
     }
 
-    /**
-     * Uploads a file to S3 and returns the URL of the uploaded file.
-     *
-     * @param file the file to upload
-     * @return the URL of the uploaded file
-     * @throws Exception if an error occurs during the upload process
-     */
-//    private String uploadFileToS3(MultipartFile file) throws Exception {
-//        String key = "family-photos/" + UUID.randomUUID();
-//
-//        s3Client.putObject(
-//                PutObjectRequest.builder()
-//                        .bucket(bucketName)
-//                        .key(key)
-//                        .build(),
-//                RequestBody.fromBytes(file.getBytes())
-//        );
-//
-//        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
-//    }
-
-    /**
-     * Deletes a specified file from S3.
-     *
-     * @param key the S3 key of the file to delete
-     */
-//    private void deleteFileFromS3(String key) {
-//        s3Client.deleteObject(
-//                DeleteObjectRequest.builder()
-//                        .bucket(bucketName)
-//                        .key(key)
-//                        .build()
-//        );
-//    }
 
     /**
      * Extracts the S3 key from the provided S3 URL.
@@ -352,35 +319,6 @@ public class FamilyService {
         return url.substring(index + ".amazonaws.com/".length());
     }
 
-//    /**
-//     * Converts a Family object to a FamilyResponseDTO.
-//     *
-//     * @param family the Family object to convert
-//     * @return the converted FamilyResponseDTO
-//     */
-   /* private FamilyResponseDTO convertToResponseDTO(Family family) {
-        FamilyResponseDTO response = new FamilyResponseDTO();
-        response.setId(family.getId());
-        // response.setName(family.getName());
-        response.setAddress(family.getAddress());
-        response.setAnniversaryDate(family.getAnniversaryDate());
-        response.setPhotoUrl(family.getPhotoUrl());
-
-        List<MemberResponseDTO> memberResponses = family.getFamilyMembers().stream()
-                .map(member -> {
-                    MemberResponseDTO memberResponse = new MemberResponseDTO();
-                    memberResponse.setId(member.getId());
-                    memberResponse.setName(member.getName());
-                    memberResponse.setDob(member.getDob());
-                    memberResponse.setPhoneNumber(member.getPhoneNumber());
-                    memberResponse.setBloodGroup(member.getBloodGroup());
-                    return memberResponse;
-                })
-                .toList();
-
-        response.setFamilyMembers(memberResponses);
-        return response;
-    }*/
 
     public List<MemberResponseDTO> searchFamilies(SearchRequest searchRequest) {
         List<Member> members =  searchMembersUsingAtlasSearch(searchRequest);
@@ -481,9 +419,6 @@ public class FamilyService {
             return "Photo is null or empty.";
         }
 
-//        if (file.getSize() > 102400) {
-//            return "Photo size should be less than 100 KB.";
-//        }
 
         String fileName = s3Service.uploadImage(file);
         String photoUrl = s3Service.generatePublicUrl(fileName);
@@ -511,7 +446,6 @@ public class FamilyService {
     public void uploadFamilyData(MultipartFile file) throws Exception {
         validateFile(file); // Step 1: Validate the file
         List<String[]> csvRows = parseCSV(file); // Step 2: Parse the CSV
-        //List<Family> families = mapToFamilyEntities(csvRows); // Step 3: Map rows to Family entities
         Map<String, List<MemberRowCSVTemplate>> familyGroup = groupMembersByFamilyId(csvRows);
         saveFamilies(familyGroup); // Step 4: Save to database
     }
@@ -695,12 +629,6 @@ public class FamilyService {
 
                     familyRepository.save(family);
                     memberService.saveAllMembers(members);
-//                    try {
-//                        System.out.println(new ObjectMapper().writeValueAsString(family));
-//                        System.out.println(new ObjectMapper().writeValueAsString(members));
-//                    } catch (JsonProcessingException e) {
-//                        throw new RuntimeException(e);
-//                    }
 
 
 

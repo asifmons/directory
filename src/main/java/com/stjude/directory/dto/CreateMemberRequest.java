@@ -19,15 +19,13 @@ public class CreateMemberRequest {
     @Size(max = 100, message = "Member name must be less than 100 characters")
     public String name;
 
-    @NotBlank(message = "Date of Birth is required")
+
     public Date dob;
 
-    @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^\\d{10,12}$", message = "Phone number must be between 10 and 12 digits")
+
     public String phoneNumber;
 
-    @NotBlank(message = "Email Id is required.")
-    @Email(message = "Email Id is in invalid format.")
+
     public String emailId;
 
     public BloodGroup bloodGroup;
