@@ -296,17 +296,17 @@ public class FamilyService {
                         partner.setCoupleNo(coupleNo);
                         newMember.setCoupleNo(coupleNo);
                         memberService.saveMember(partner);
+                        Map<Short, Date> anniversaryDates = updatedFamily.getAnniversaryDates();
+                        if (anniversaryDates == null) {
+                            anniversaryDates = new HashMap<>();
+                        }
+                        anniversaryDates.put(newMember.getCoupleNo(), memberRequest.getAnniversaryDate());
+                        updatedFamily.setAnniversaryDates(anniversaryDates);
+                        updatedFamily = familyRepository.save(updatedFamily);
+                        members.add(newMember);
                     }
                 }
                 memberService.saveMember(newMember);
-                Map<Short, Date> anniversaryDates = updatedFamily.getAnniversaryDates();
-                if (anniversaryDates == null) {
-                    anniversaryDates = new HashMap<>();
-                }
-                anniversaryDates.put(newMember.getCoupleNo(), memberRequest.getAnniversaryDate());
-                updatedFamily.setAnniversaryDates(anniversaryDates);
-                updatedFamily = familyRepository.save(updatedFamily);
-                members.add(newMember);
             }
         }
 
