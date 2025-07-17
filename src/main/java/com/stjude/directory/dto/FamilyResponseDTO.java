@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.util.CollectionUtils;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Data
@@ -42,17 +43,18 @@ public class FamilyResponseDTO {
             return List.of();
         }
         // Group members by coupleNo for faster access
-        Map<Short, List<String>> membersByCoupleNo = members.stream().filter(member -> Objects.nonNull(member.getCoupleNo()))
+        Map<Short, List<Member>> membersByCoupleNo = members.stream().filter(member -> Objects.nonNull(member.getCoupleNo()))
                 .collect(Collectors.groupingBy(
                         Member::getCoupleNo,
-                        Collectors.mapping(Member::getName, Collectors.toList())
+                        Collectors.mapping(Function.identity(), Collectors.toList())
                 ));
 
         return anniversaryDates.entrySet().stream()
                 .map(entry -> {
-                    List<String> names = membersByCoupleNo.get(entry.getKey());
-                    if (names != null && names.size() >= 2) {
-                        return new Couple(names.get(0), names.get(1), entry.getValue());
+                    List<Member> couples = membersByCoupleNo.get(entry.getKey());
+                    if (couples != null && couples.size() >= 2) {
+                        return new Couple(couples.get(0).getName(), couples.get(1).getName(), entry.getValue(), entry.getKey(),
+                                couples.get(0).getId(), couples.get(1).getId());
                     }
                     return null; // Handle cases where names are missing or invalid
                 })

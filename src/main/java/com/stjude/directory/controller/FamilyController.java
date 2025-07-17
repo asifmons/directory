@@ -80,7 +80,7 @@ public class FamilyController {
     @PutMapping("/{id}")
     public ResponseEntity<FamilyResponseDTO> updateFamily(
             @PathVariable String id,
-            @Valid @ModelAttribute UpdateFamilyRequest familyRequest
+            @RequestBody  UpdateFamilyRequest familyRequest
     ) throws Exception {
         FamilyResponseDTO updatedFamily = familyService.updateFamily(id, familyRequest);
         return ResponseEntity.ok(updatedFamily);
@@ -152,6 +152,12 @@ public class FamilyController {
     public ResponseEntity<List<MemberResponseDTO>> searchFamilyMembers(@RequestBody @Valid SearchRequest searchRequest) {
         List<MemberResponseDTO> families = familyService.searchFamilies(searchRequest);
         return ResponseEntity.ok(families);
+    }
+
+    @PostMapping("searchFamilyMembersWithCount")
+    public ResponseEntity<SearchResultWithCountDTO> searchFamilyMembersWithCount(@RequestBody @Valid SearchRequest searchRequest) {
+        SearchResultWithCountDTO result = familyService.searchFamiliesWithCount(searchRequest);
+        return ResponseEntity.ok(result);
     }
 
 
