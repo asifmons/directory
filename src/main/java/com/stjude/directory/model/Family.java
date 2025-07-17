@@ -22,7 +22,6 @@ public class Family {
     private String id;
     private String churchNo;
     private String address;
-    //private String anniversaryDate; // Consider using LocalDate for date handling
     private String photoUrl;
     private Unit unit;
     private Map<Short, Date> anniversaryDates;
@@ -62,5 +61,3 @@ public class Family {
     }
 
 }
-
-

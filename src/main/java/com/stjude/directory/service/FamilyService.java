@@ -3,6 +3,7 @@ package com.stjude.directory.service;
 import com.opencsv.CSVReader;
 import com.stjude.directory.CriteriaHelper;
 import com.stjude.directory.dto.*;
+import com.stjude.directory.dto.MemberRowCSVTemplate; // Added import
 import com.stjude.directory.enums.*;
 import com.stjude.directory.enums.Unit;
 import com.stjude.directory.model.*;
@@ -238,6 +239,24 @@ public class FamilyService {
             existingFamily.setHouseName(familyRequest.getHouseName());
         }
 
+        // 1. Remove couples
+        if (familyRequest.getCouplesToBeRemoved() != null && !familyRequest.getCouplesToBeRemoved().isEmpty()) {
+            for (Couple coupleToRemove : familyRequest.getCouplesToBeRemoved()) {
+                if (coupleToRemove.getCoupleNo() != null) {
+                    existingFamily.getAnniversaryDates().remove(coupleToRemove.getCoupleNo());
+                }
+            }
+        }
+
+        // 2. Update anniversary dates for couples
+        if (familyRequest.getCouplesThatNeedUpdate() != null && !familyRequest.getCouplesThatNeedUpdate().isEmpty()) {
+            for (Couple coupleToUpdate : familyRequest.getCouplesThatNeedUpdate()) {
+                if (coupleToUpdate.getCoupleNo() != null && coupleToUpdate.getAnniversaryDate() != null) {
+                    existingFamily.getAnniversaryDates().put(coupleToUpdate.getCoupleNo(), coupleToUpdate.getAnniversaryDate());
+                }
+            }
+        }
+
         // Save updated family
         Family updatedFamily = familyRepository.save(existingFamily);
 
@@ -254,7 +273,55 @@ public class FamilyService {
             members = memberService.getMembersByFamilyId(id);
         }
 
+        // 3. Remove family members
+        if (familyRequest.getFamilyMembersToRemove() != null && !familyRequest.getFamilyMembersToRemove().isEmpty()) {
+            for (String memberIdToRemove : familyRequest.getFamilyMembersToRemove()) {
+                memberService.deleteMember(memberIdToRemove);
+            }
+        }
+
+        // 4. Handle members to be added
+        if (familyRequest.getFamilyMembersToAdd() != null && !familyRequest.getFamilyMembersToAdd().isEmpty()) {
+            for (AddMemberRequest memberRequest : familyRequest.getFamilyMembersToAdd()) {
+                Member newMember = new Member(memberRequest, updatedFamily.getId(), updatedFamily.getAddress(), updatedFamily.getUnit());
+
+                if (memberRequest.getAnniversaryDate() != null && memberRequest.getPartnerId() != null) {
+                    Short coupleNo = getNextCoupleNo(existingFamily.getAnniversaryDates());
+                    newMember.setCoupleNo(coupleNo);
+                    existingFamily.getAnniversaryDates().put(coupleNo, memberRequest.getAnniversaryDate());
+
+                    // Update partner's coupleNo
+                    Member partner = memberService.getMemberById(memberRequest.getPartnerId());
+                    if (partner != null) {
+                        partner.setCoupleNo(coupleNo);
+                        newMember.setCoupleNo(coupleNo);
+                        memberService.saveMember(partner);
+                    }
+                }
+                memberService.saveMember(newMember);
+                Map<Short, Date> anniversaryDates = updatedFamily.getAnniversaryDates();
+                if (anniversaryDates == null) {
+                    anniversaryDates = new HashMap<>();
+                }
+                anniversaryDates.put(newMember.getCoupleNo(), memberRequest.getAnniversaryDate());
+                updatedFamily.setAnniversaryDates(anniversaryDates);
+                updatedFamily = familyRepository.save(updatedFamily);
+                members.add(newMember);
+            }
+        }
+
+
+
         return new FamilyResponseDTO(updatedFamily, members);
+    }
+
+    private Short getNextCoupleNo(Map<Short, Date> anniversaryDates) {
+        if (anniversaryDates == null || anniversaryDates.isEmpty()) {
+            return 1;
+        }
+        Optional<Short> maxCoupleNo = anniversaryDates.keySet().stream()
+                .max(Comparator.naturalOrder());
+        return (short) (maxCoupleNo.orElse((short) 0) + 1);
     }
 
     /**
@@ -323,6 +390,44 @@ public class FamilyService {
     public List<MemberResponseDTO> searchFamilies(SearchRequest searchRequest) {
         List<Member> members =  searchMembersUsingAtlasSearch(searchRequest);
         return mapToResponseDTOs(members);
+    }
+
+    public SearchResultWithCountDTO searchFamiliesWithCount(SearchRequest searchRequest) {
+        // Get the search results
+        List<Member> members = searchMembersUsingAtlasSearch(searchRequest);
+        List<MemberResponseDTO> results = mapToResponseDTOs(members);
+        
+        // Get the total count efficiently using a separate aggregation
+        long totalCount = getSearchResultCount(searchRequest);
+        
+        return new SearchResultWithCountDTO(results, totalCount);
+    }
+
+    private long getSearchResultCount(SearchRequest searchRequest) {
+        Document searchQuery = AtlasSearchHelper.createSearchQuery(searchRequest.getNode());
+
+        // Build aggregation pipeline for counting
+        List<AggregationOperation> operations = new ArrayList<>();
+
+        // Add search stage
+        operations.add(context -> searchQuery);
+        
+        // Add count stage
+        operations.add(Aggregation.count().as("totalCount"));
+        
+        Aggregation aggregation = Aggregation.newAggregation(operations);
+        AggregationResults<Document> results = mongoTemplate.aggregate(
+                aggregation,
+                "MEMBER", // Collection name
+                Document.class
+        );
+
+        List<Document> mappedResults = results.getMappedResults();
+        if (mappedResults.isEmpty()) {
+            return 0L;
+        }
+        
+        return mappedResults.get(0).getInteger("totalCount", 0);
     }
 
     public Optional<Member> findFamilyHeadByUserName(String username) {

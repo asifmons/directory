@@ -1,5 +1,6 @@
 package com.stjude.directory.model;
 
+import com.stjude.directory.dto.AddMemberRequest;
 import com.stjude.directory.dto.CreateMemberRequest;
 import com.stjude.directory.dto.MemberRowCSVTemplate;
 import com.stjude.directory.dto.UpdateMemberRequest;
@@ -60,6 +61,30 @@ public class Member {
         this.coupleNo = request.getCoupleNo();
         this.password = request.getPassword();
         this.roles = request.getRoles();
+    }
+
+    public Member(AddMemberRequest request, String familyId, String address, Unit unit){
+        this.id = StringOps.generateUUID();
+        this.familyId = familyId;
+        this.name = request.getName();
+        this.dob = request.getDob();
+        this.phoneNumber = request.getPhoneNumber();
+        this.emailId = request.getEmailId();
+        this.bloodGroup = request.getBloodGroup();
+        this.isFamilyHead = request.getIsFamilyHead();
+        this.address = address;
+        this.unit = unit;
+        this.coupleNo = request.getCoupleNo();
+        this.roles = request.getRoles();
+        // Fields below are not present in AddMemberRequest, so they are not set here.
+        // this.password = request.getPassword();
+        // this.salutation = request.getSalutation();
+        // this.status = request.getStatus();
+        // this.expiryDate = request.getExpiryDate();
+        // this.houseName = request.getHouseName();
+        // this.ordinationDate = request.getOrdinationDate();
+        // this.feastDate = request.getFeastDate();
+        // this.phoneNumberSecondary = request.getPhoneNumberSecondary();
     }
 
     public Member(String id, CreateMemberRequest request, String familyId, String address, Unit unit){

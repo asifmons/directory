@@ -16,4 +16,7 @@ public class Couple {
     private String spouce2;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private Date anniversaryDate;
+    private Short coupleNo;
+    private String spouse1Id;
+    private String spouse2Id;
 }
