@@ -102,6 +102,21 @@ public class S3Service {
     }
 
     // Upload image to a custom S3 key (used for per-year uploads)
+    public String uploadFile(MultipartFile file, String folder, String fileName) {
+        String key = folder + "/" + fileName;
+        try {
+            PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(file.getContentType())
+                    .build();
+            s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
+            return generatePublicUrl(key);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload file to S3", e);
+        }
+    }
+
     public String uploadImageWithCustomKey(MultipartFile file) throws IOException {
         String fileName = "church-photos/" + "_" + file.getOriginalFilename();
 
