@@ -1,23 +1,19 @@
 package com.stjude.directory.model;
 
 import java.time.LocalDateTime;
-import lombok.AllArgsConstructor;
+import java.util.UUID;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document("positions")
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Document(collection = "UNIT")
-public class Unit {
+public class Position {
     @Id
-    private String id;
+    private String id = UUID.randomUUID().toString();
     private String name;
-    private Integer numberOfFamilies;
 
     @CreatedDate
     private LocalDateTime createdDate;
