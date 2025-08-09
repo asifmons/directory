@@ -78,7 +78,7 @@ public class FamilyService {
         }
         List<Member> members = familyRequest.getFamilyMembers()
                 .stream()
-                .map(dto -> new Member(dto, familyId, familyRequest.getAddress(), familyRequest.getUnit()))
+                .map(dto -> new Member(dto, familyId, familyRequest.getAddress(), familyRequest.getUnit(), passwordEncoder.encode("test123")))
                 .toList();
         memberService.saveAllMembers(members);
         return members;
@@ -95,7 +95,7 @@ public class FamilyService {
         Family family = familyRepository.findById(familyId)
                 .orElseThrow(() -> new RuntimeException("Family not found"));
         memberRequests.stream()
-                .map(memReq -> new Member(memReq, familyId, family.getAddress(), family.getUnit()))
+                .map(memReq -> new Member(memReq, familyId, family.getAddress(), family.getUnit(), passwordEncoder.encode("test123")))
                 .forEach(memberService::saveMember);
     }
 
