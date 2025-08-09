@@ -47,7 +47,7 @@ public class Member {
     private Date feastDate; // For parish priest only
     private String phoneNumberSecondary;
 
-    public Member(CreateMemberRequest request, String familyId, String address, Unit unit){
+    public Member(CreateMemberRequest request, String familyId, String address, Unit unit, String password){
         this.id = StringOps.generateUUID();
         this.familyId = familyId;
         this.name = request.getName();
@@ -59,7 +59,7 @@ public class Member {
         this.address = address;
         this.unit = unit;
         this.coupleNo = request.getCoupleNo();
-        this.password = request.getPassword();
+        this.password = request.isFamilyHead ? password : null;
         this.roles = request.getRoles();
     }
 
