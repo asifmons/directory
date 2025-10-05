@@ -215,6 +215,14 @@ public class FamilyService {
         if (memberRequest.getCoupleNo() != null) {
             existingMember.setCoupleNo(memberRequest.getCoupleNo());
         }
+        if (memberRequest.getStatus()!= null) {
+            existingMember.setStatus(memberRequest.getStatus());
+            if (existingMember.getStatus().equals(Status.EXPIRED)) {
+                existingMember.setExpiryDate(memberRequest.getExpiryDate());
+            } else {
+                existingMember.setExpiryDate(null);
+            }
+        }
 
         memberService.saveMember(existingMember);
     }

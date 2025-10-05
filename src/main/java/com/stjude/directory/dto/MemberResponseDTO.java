@@ -30,6 +30,7 @@ public class MemberResponseDTO {
     private String ordinationDate; // For parish priest only
     private String feastDate;
     private String phoneNumberSecondary;
+    private String expiryDate;
 
     public MemberResponseDTO(Member member) {
         this.setId(member.getId());
@@ -44,6 +45,8 @@ public class MemberResponseDTO {
         this.setUnit(member.getUnit());
         this.setRoles(member.getRoles());
         this.setStatus(member.getStatus() != null ? member.getStatus() : Status.ACTIVE);
+        this.setExpiryDate(member.getStatus()!= null && member.getStatus() == Status.EXPIRED ?
+                new SimpleDateFormat("dd-MM-yyyy").format(member.getExpiryDate()) : null);
         this.setOrdinationDate(member.getOrdinationDate() != null ? new SimpleDateFormat("dd-MM-yy").format( member.getOrdinationDate()) : null);
         this.setFeastDate(member.getOrdinationDate() != null ? new SimpleDateFormat("dd-MM-yy").format(member.getFeastDate()) : null);
         this.setPhoneNumberSecondary(member.getPhoneNumberSecondary());

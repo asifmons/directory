@@ -2,6 +2,7 @@ package com.stjude.directory.dto;
 
 
 import com.stjude.directory.enums.BloodGroup;
+import com.stjude.directory.enums.Status;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -36,5 +37,7 @@ public class UpdateMemberRequest {
     private Boolean isFamilyHead;
 
     private Short coupleNo;
+    private Status status;
+    private Date expiryDate;
 
 }
