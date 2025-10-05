@@ -9,6 +9,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/committees")
@@ -19,8 +20,10 @@ public class CommitteeController {
     private CommitteeService committeeService;
 
     @PostMapping
-    public ResponseEntity<Committee> createCommittee(@RequestBody CommitteeDTO committeeDTO) {
-        return ResponseEntity.ok(committeeService.createCommittee(committeeDTO));
+    public ResponseEntity<Committee> createCommittee(@RequestPart("data") CommitteeDTO committeeDTO,
+                                                     @RequestPart(value = "coverPhoto", required = false) MultipartFile coverPhoto,
+                                                     @RequestPart(value = "innerCoverPhoto", required = false) MultipartFile innerCoverPhoto) {
+        return ResponseEntity.ok(committeeService.createCommittee(committeeDTO, coverPhoto, innerCoverPhoto));
     }
 
     @GetMapping
@@ -34,8 +37,11 @@ public class CommitteeController {
     }
 
     @PutMapping("/{committeeId}")
-    public ResponseEntity<Committee> updateCommittee(@PathVariable String committeeId, @RequestBody CommitteeDTO committeeDTO) {
-        return ResponseEntity.ok(committeeService.updateCommittee(committeeId, committeeDTO));
+    public ResponseEntity<Committee> updateCommittee(@PathVariable String committeeId,
+                                                     @RequestPart("data") CommitteeDTO committeeDTO,
+                                                     @RequestPart(value = "coverPhoto", required = false) MultipartFile coverPhoto,
+                                                     @RequestPart(value = "innerCoverPhoto", required = false) MultipartFile innerCoverPhoto) {
+        return ResponseEntity.ok(committeeService.updateCommittee(committeeId, committeeDTO, coverPhoto, innerCoverPhoto));
     }
 
     @DeleteMapping("/{committeeId}")

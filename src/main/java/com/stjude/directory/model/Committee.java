@@ -15,6 +15,8 @@ public class Committee {
     private String id;
     private String name;
     private List<CommitteeCard> cards;
+    private String coverPhotoUrl;
+    private String innerCoverPhotoUrl;
 
     @CreatedDate
     private LocalDateTime createdDate;

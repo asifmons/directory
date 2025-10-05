@@ -7,4 +7,6 @@ import lombok.Data;
 public class CommitteeDTO {
     private String name;
     private List<CommitteeCardDTO> cards;
+    private boolean removeCoverPhoto;
+    private boolean removeInnerCoverPhoto;
 }

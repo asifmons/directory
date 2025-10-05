@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class CommitteeServiceImpl implements CommitteeService {
@@ -29,8 +30,11 @@ public class CommitteeServiceImpl implements CommitteeService {
     @Autowired
     private PositionService positionService;
 
+    @Autowired
+    private S3Service s3Service;
+
     @Override
-    public Committee createCommittee(CommitteeDTO committeeDTO) {
+    public Committee createCommittee(CommitteeDTO committeeDTO, MultipartFile coverPhoto, MultipartFile innerCoverPhoto) {
         Committee committee = new Committee();
         committee.setName(committeeDTO.getName());
 
@@ -54,6 +58,23 @@ public class CommitteeServiceImpl implements CommitteeService {
         committee.setCards(cards);
         committee.setCreatedDate(LocalDateTime.now());
         committee.setLastModifiedDate(LocalDateTime.now());
+
+        if (committeeDTO.isRemoveCoverPhoto()) {
+            //s3Service.deleteFile("committee-photos", "cover-photo-" + committee.getId());
+            committee.setCoverPhotoUrl(null);
+        } else if (coverPhoto != null) {
+            String coverPhotoUrl = s3Service.uploadFile(coverPhoto, "committee-photos", "cover-photo-" + committee.getId());
+            committee.setCoverPhotoUrl(coverPhotoUrl);
+        }
+
+        if (committeeDTO.isRemoveInnerCoverPhoto()) {
+            //s3Service.deleteFile("committee-photos", "inner-photo-" + committee.getId());
+            committee.setInnerCoverPhotoUrl(null);
+        } else if (innerCoverPhoto != null) {
+            String innerCoverPhotoUrl = s3Service.uploadFile(innerCoverPhoto, "committee-photos", "inner-photo-" + committee.getId());
+            committee.setInnerCoverPhotoUrl(innerCoverPhotoUrl);
+        }
+
         return committeeRepository.save(committee);
     }
 
@@ -90,7 +111,7 @@ public class CommitteeServiceImpl implements CommitteeService {
     }
 
     @Override
-    public Committee updateCommittee(String committeeId, CommitteeDTO committeeDTO) {
+    public Committee updateCommittee(String committeeId, CommitteeDTO committeeDTO, MultipartFile coverPhoto, MultipartFile innerCoverPhoto) {
         Committee committee = committeeRepository.findById(committeeId)
                 .orElseThrow(() -> new RuntimeException("Committee not found"));
 
@@ -115,6 +136,17 @@ public class CommitteeServiceImpl implements CommitteeService {
 
         committee.setCards(cards);
         committee.setLastModifiedDate(LocalDateTime.now());
+
+        if (coverPhoto != null) {
+            String coverPhotoUrl = s3Service.uploadFile(coverPhoto, "committee-photos", "cover-photo-" + committee.getId());
+            committee.setCoverPhotoUrl(coverPhotoUrl);
+        }
+
+        if (innerCoverPhoto != null) {
+            String innerCoverPhotoUrl = s3Service.uploadFile(innerCoverPhoto, "committee-photos", "inner-photo-" + committee.getId());
+            committee.setInnerCoverPhotoUrl(innerCoverPhotoUrl);
+        }
+
         return committeeRepository.save(committee);
     }
 

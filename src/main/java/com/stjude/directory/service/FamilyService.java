@@ -76,10 +76,18 @@ public class FamilyService {
         if (familyRequest.getFamilyMembers() == null || familyRequest.getFamilyMembers().isEmpty()) {
             return Collections.emptyList();
         }
+
         List<Member> members = familyRequest.getFamilyMembers()
                 .stream()
                 .map(dto -> new Member(dto, familyId, familyRequest.getAddress(), familyRequest.getUnit(), passwordEncoder.encode("test123")))
                 .toList();
+
+        Member familyHead = members.stream()
+                .filter(Member::getIsFamilyHead)
+                .findFirst()
+                .orElse(null);
+        assert familyHead != null;
+        familyHead.setPassword(passwordEncoder.encode("test123"));
         memberService.saveAllMembers(members);
         return members;
     }
