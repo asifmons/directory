@@ -60,6 +60,8 @@ public class Member {
         this.unit = unit;
         this.coupleNo = request.getCoupleNo();
         this.password = request.isFamilyHead ? password : null;
+        this.status = request.getStatus();
+        this.expiryDate = request.getExpiryDate();
         this.roles = request.getRoles();
     }
 
