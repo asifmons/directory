@@ -89,6 +89,20 @@ public class AuthService {
                 });
     }
 
+    public void resetPasswordByFamilyId(String familyId) {
+        List<Member> members = memberService.getMembersByFamilyId(familyId);
+        
+        // Find the family head
+        Member familyHead = members.stream()
+                .filter(Member::getIsFamilyHead)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Family head not found for family ID: " + familyId));
+        
+        // Reset password to default "test123"
+        familyHead.setPassword(passwordEncoder.encode("test123"));
+        memberService.saveMember(familyHead);
+    }
+
     private SearchRequest createSearchRequest(String emailId) {
         FilterCriteria filterCriteria = createFilterCriteria(emailId);
         return buildSearchRequest(filterCriteria);

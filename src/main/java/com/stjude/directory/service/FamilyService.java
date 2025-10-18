@@ -248,29 +248,8 @@ public class FamilyService {
         if (familyRequest.getUnit() != null) {
             existingFamily.setUnit(familyRequest.getUnit());
         }
-        if (familyRequest.getAnniversaryDates() != null) {
-            existingFamily.setAnniversaryDates(familyRequest.getAnniversaryDates());
-        }
         if (familyRequest.getHouseName() != null) {
             existingFamily.setHouseName(familyRequest.getHouseName());
-        }
-
-        // 1. Remove couples
-        if (familyRequest.getCouplesToBeRemoved() != null && !familyRequest.getCouplesToBeRemoved().isEmpty()) {
-            for (Couple coupleToRemove : familyRequest.getCouplesToBeRemoved()) {
-                if (coupleToRemove.getCoupleNo() != null) {
-                    existingFamily.getAnniversaryDates().remove(coupleToRemove.getCoupleNo());
-                }
-            }
-        }
-
-        // 2. Update anniversary dates for couples
-        if (familyRequest.getCouplesThatNeedUpdate() != null && !familyRequest.getCouplesThatNeedUpdate().isEmpty()) {
-            for (Couple coupleToUpdate : familyRequest.getCouplesThatNeedUpdate()) {
-                if (coupleToUpdate.getCoupleNo() != null && coupleToUpdate.getAnniversaryDate() != null) {
-                    existingFamily.getAnniversaryDates().put(coupleToUpdate.getCoupleNo(), coupleToUpdate.getAnniversaryDate());
-                }
-            }
         }
 
         // Save updated family
@@ -283,52 +262,97 @@ public class FamilyService {
                 // Use the new update method for UpdateMemberRequest
                 updateFamilyMemberWithUpdateRequest(id, memberRequest.getId(), memberRequest);
             }
-            members = memberService.getMembersByFamilyId(id);
-        } else {
-            // If no members provided in request, get existing members
-            members = memberService.getMembersByFamilyId(id);
         }
 
-        // 3. Remove family members
+        // Remove family members
         if (familyRequest.getFamilyMembersToRemove() != null && !familyRequest.getFamilyMembersToRemove().isEmpty()) {
             for (String memberIdToRemove : familyRequest.getFamilyMembersToRemove()) {
                 memberService.deleteMember(memberIdToRemove);
             }
         }
 
-        // 4. Handle members to be added
+        // Handle members to be added
+        Map<String, Member> newMembersMap = new HashMap<>();
         if (familyRequest.getFamilyMembersToAdd() != null && !familyRequest.getFamilyMembersToAdd().isEmpty()) {
             for (AddMemberRequest memberRequest : familyRequest.getFamilyMembersToAdd()) {
                 Member newMember = new Member(memberRequest, updatedFamily.getId(), updatedFamily.getAddress(), updatedFamily.getUnit());
-
-                if (memberRequest.getAnniversaryDate() != null && memberRequest.getPartnerId() != null) {
-                    Short coupleNo = getNextCoupleNo(existingFamily.getAnniversaryDates());
-                    newMember.setCoupleNo(coupleNo);
-                    existingFamily.getAnniversaryDates().put(coupleNo, memberRequest.getAnniversaryDate());
-
-                    // Update partner's coupleNo
-                    Member partner = memberService.getMemberById(memberRequest.getPartnerId());
-                    if (partner != null) {
-                        partner.setCoupleNo(coupleNo);
-                        newMember.setCoupleNo(coupleNo);
-                        memberService.saveMember(partner);
-                        Map<Short, Date> anniversaryDates = updatedFamily.getAnniversaryDates();
-                        if (anniversaryDates == null) {
-                            anniversaryDates = new HashMap<>();
-                        }
-                        anniversaryDates.put(newMember.getCoupleNo(), memberRequest.getAnniversaryDate());
-                        updatedFamily.setAnniversaryDates(anniversaryDates);
-                        updatedFamily = familyRepository.save(updatedFamily);
-                        members.add(newMember);
-                    }
+                Member savedMember = memberService.saveMember(newMember);
+                String key = memberRequest.getName();
+                if (memberRequest.getDob() != null) {
+                    key += "-" + new SimpleDateFormat("yyyy-MM-dd").format(memberRequest.getDob());
                 }
-                memberService.saveMember(newMember);
+                newMembersMap.put(key, savedMember);
             }
         }
 
+        // Handle couple relationships
+        if (familyRequest.getCoupleRelationships() != null && !familyRequest.getCoupleRelationships().isEmpty()) {
+            for (CoupleRelationshipRequest relationship : familyRequest.getCoupleRelationships()) {
+                switch (relationship.getAction()) {
+                    case ADD:
+                        handleAddCouple(relationship, existingFamily, newMembersMap);
+                        break;
+                    case UPDATE:
+                        handleUpdateCouple(relationship, existingFamily);
+                        break;
+                    case DELETE:
+                        handleDeleteCouple(relationship, existingFamily);
+                        break;
+                }
+            }
+        }
 
+        familyRepository.save(existingFamily);
+        members = memberService.getMembersByFamilyId(id);
 
         return new FamilyResponseDTO(updatedFamily, members);
+    }
+
+    private void handleAddCouple(CoupleRelationshipRequest relationship, Family family, Map<String, Member> newMembersMap) {
+        Member member1 = findMember(relationship.getMember1Id(), newMembersMap);
+        Member member2 = findMember(relationship.getMember2Id(), newMembersMap);
+
+        if (member1 != null && member2 != null) {
+            Short coupleNo = getNextCoupleNo(family.getAnniversaryDates());
+            member1.setCoupleNo(coupleNo);
+            member2.setCoupleNo(coupleNo);
+            memberService.saveMember(member1);
+            memberService.saveMember(member2);
+
+            if (family.getAnniversaryDates() == null) {
+                family.setAnniversaryDates(new HashMap<>());
+            }
+            family.getAnniversaryDates().put(coupleNo, relationship.getAnniversaryDate());
+        }
+    }
+
+    private void handleUpdateCouple(CoupleRelationshipRequest relationship, Family family) {
+        Member member1 = memberService.getMemberById(relationship.getMember1Id());
+        if (member1 != null && member1.getCoupleNo() != null) {
+            family.getAnniversaryDates().put(member1.getCoupleNo(), relationship.getAnniversaryDate());
+        }
+    }
+
+    private void handleDeleteCouple(CoupleRelationshipRequest relationship, Family family) {
+        Member member1 = memberService.getMemberById(relationship.getMember1Id());
+        Member member2 = memberService.getMemberById(relationship.getMember2Id());
+
+        if (member1 != null && member1.getCoupleNo() != null) {
+            family.getAnniversaryDates().remove(member1.getCoupleNo());
+            member1.setCoupleNo(null);
+            memberService.saveMember(member1);
+        }
+        if (member2 != null) {
+            member2.setCoupleNo(null);
+            memberService.saveMember(member2);
+        }
+    }
+
+    private Member findMember(String identifier, Map<String, Member> newMembersMap) {
+        if (newMembersMap.containsKey(identifier)) {
+            return newMembersMap.get(identifier);
+        }
+        return memberService.getMemberById(identifier);
     }
 
     private Short getNextCoupleNo(Map<Short, Date> anniversaryDates) {
