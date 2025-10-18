@@ -1,7 +1,6 @@
 package com.stjude.directory.dto;
 
 import com.stjude.directory.enums.Unit;
-import com.stjude.directory.model.Couple;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -28,8 +27,6 @@ public class UpdateFamilyRequest {
     private String houseName;
     private List<AddMemberRequest> familyMembersToAdd;
     private List<String> familyMembersToRemove;
-    private List<Couple> couplesToBeRemoved;
-    private List<Couple> couplesThatNeedUpdate;
+    private List<CoupleRelationshipRequest> coupleRelationships;
 
 }
-
